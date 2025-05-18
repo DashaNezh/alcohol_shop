@@ -10,6 +10,7 @@ from decimal import Decimal
 from werkzeug.utils import secure_filename
 import time
 from functools import wraps
+from recommendation_system import RecommendationSystem
 
 # Загрузка переменных окружения
 load_dotenv()
@@ -661,6 +662,39 @@ def get_active_promotion():
                 return jsonify({})
     finally:
         conn.close()
+
+# Создаем экземпляр системы рекомендаций
+recommender = RecommendationSystem()
+try:
+    recommender.prepare_data()
+    recommender.compute_similarities()
+except Exception as e:
+    app.logger.error(f"Failed to initialize recommendation system: {e}")
+
+@app.route('/api/recommendations', methods=['GET'])
+def get_recommendations():
+    if 'user_id' not in session:
+        # Для неавторизованных пользователей возвращаем популярные товары
+        try:
+            recommendations = recommender.get_popular_recommendations(6)
+            return jsonify(recommendations), 200
+        except Exception as e:
+            app.logger.error(f"Failed to get popular recommendations: {e}")
+            return jsonify([]), 200
+
+    try:
+        # Для авторизованных пользователей возвращаем персонализированные рекомендации
+        recommendations = recommender.get_user_recommendations(session['user_id'], 6)
+        return jsonify(recommendations), 200
+    except Exception as e:
+        app.logger.error(f"Failed to get user recommendations: {e}")
+        # В случае ошибки возвращаем популярные товары
+        try:
+            recommendations = recommender.get_popular_recommendations(6)
+            return jsonify(recommendations), 200
+        except Exception as e:
+            app.logger.error(f"Failed to get popular recommendations: {e}")
+            return jsonify([]), 200
 
 if __name__ == '__main__':
     app.run(debug=True)

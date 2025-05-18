@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Магазин алкоголя</title>
+    <title>AlcoDasha</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         body { font-family: Arial, sans-serif; }
@@ -15,7 +15,7 @@
         <!-- Header -->
         <header class="bg-blue-600 text-white p-4 rounded mb-4">
             <div class="flex justify-between items-center">
-                <h1 class="text-2xl font-bold">Магазин алкоголя</h1>
+                <h1 class="text-2xl font-bold">AlcoDasha</h1>
                 <div class="flex items-center space-x-4">
                     <div id="auth-status" class="mt-2"></div>
                     <button id="logout-btn" class="hidden bg-red-500 px-4 py-2 rounded hover:bg-red-600">Выйти</button>
@@ -53,6 +53,12 @@
             <div id="products-list" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"></div>
         </div>
 
+        <!-- Recommendations Section -->
+        <div id="recommendations-section" class="hidden mb-4">
+            <h2 class="text-xl font-bold mb-2">Рекомендации для вас</h2>
+            <div id="recommendations-list" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"></div>
+        </div>
+
         <!-- Cart Section -->
         <div id="cart-section" class="hidden mb-4">
             <h2 class="text-xl font-bold mb-2">Корзина</h2>
@@ -88,6 +94,7 @@
             const authStatus = document.getElementById('auth-status');
             const authSection = document.getElementById('auth-section');
             const productsSection = document.getElementById('products-section');
+            const recommendationsSection = document.getElementById('recommendations-section');
             const cartSection = document.getElementById('cart-section');
             const logoutBtn = document.getElementById('logout-btn');
 
@@ -107,14 +114,17 @@
 
                 authSection.classList.add('hidden');
                 productsSection.classList.remove('hidden');
+                recommendationsSection.classList.remove('hidden');
                 cartSection.classList.remove('hidden');
                 logoutBtn.classList.remove('hidden');
                 loadProducts();
                 loadCart();
+                loadRecommendations();
             } else {
                 authStatus.textContent = 'Пожалуйста, войдите или зарегистрируйтесь';
                 authSection.classList.remove('hidden');
                 productsSection.classList.add('hidden');
+                recommendationsSection.classList.add('hidden');
                 cartSection.classList.add('hidden');
                 logoutBtn.classList.add('hidden');
             }
@@ -312,6 +322,37 @@
         }
 
         document.getElementById('logout-btn').addEventListener('click', logout);
+
+        async function loadRecommendations() {
+            const response = await fetch(`${apiUrl}/recommendations`, { credentials: 'include' });
+            const recommendations = await response.json();
+            const recommendationsList = document.getElementById('recommendations-list');
+            recommendationsList.innerHTML = '';
+
+            if (recommendations.length === 0) {
+                recommendationsList.innerHTML = '<p>Нет доступных рекомендаций</p>';
+                return;
+            }
+
+            for (const product of recommendations) {
+                const div = document.createElement('div');
+                div.className = 'bg-white p-4 rounded shadow';
+                div.innerHTML = `
+                    ${product.image_url ? `<img src="${product.image_url}" alt="${product.name}" class="w-full h-48 object-cover mb-4 rounded">` : ''}
+                    <h3 class="text-lg font-bold">${product.name}</h3>
+                    <p>Категория: ${product.category}</p>
+                    <p>Бренд: ${product.brand}</p>
+                    <p>Цена: ${product.price} руб.</p>
+                    <div class="flex items-center space-x-2 mb-2">
+                        <label for="rec-quantity-${product.product_id}" class="text-sm">Количество:</label>
+                        <input type="number" id="rec-quantity-${product.product_id}" min="1" value="1" 
+                               class="border p-1 w-16 text-center">
+                    </div>
+                    <button onclick="addToCart(${product.product_id})" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">В корзину</button>
+                `;
+                recommendationsList.appendChild(div);
+            }
+        }
 
         // Initial check
         checkAuth();
