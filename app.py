@@ -367,7 +367,101 @@ def get_cart():
                 WHERE c.user_id = %s
             """, (session['user_id'],))
             cart_items = cursor.fetchall()
-            return jsonify(cart_items), 200
+
+            # --- Расчет цен с учетом скидок в корзине ---
+            processed_cart_items = []
+            # Если корзина пуста, возвращаем пустой список
+            if not cart_items:
+                return jsonify([]), 200
+
+            # Сначала сгруппируем товары по product_id, чтобы учесть общее количество для акций типа 'N по цене M'
+            items_by_product = {}
+            for item in cart_items:
+                if item['product_id'] not in items_by_product:
+                    items_by_product[item['product_id']] = []
+                items_by_product[item['product_id']].append(item)
+
+            for product_id, items in items_by_product.items():
+                total_quantity = sum(item['quantity'] for item in items)
+                # Предполагаем, что все позиции одного product_id имеют одинаковую базовую цену
+                original_price_per_item = float(items[0]['price'])
+
+                # Поиск активной акции для товара
+                cursor.execute('''
+                    SELECT id, name, discount_percent FROM promotions
+                    WHERE (
+                        (product_id = %s) OR
+                        (id IN (SELECT promotion_id FROM promotion_categories WHERE category_id = %s))
+                    )
+                    AND start_date <= NOW() AND end_date >= NOW()
+                    ORDER BY discount_percent DESC LIMIT 1
+                ''', (product_id, items[0]['category_id']))
+                promo = cursor.fetchone()
+
+                applied_discount_percent = 0
+                total_discount_for_product = 0
+                effective_price_per_item = original_price_per_item
+                promotion_name = None
+
+                if promo:
+                    promotion_name = promo['name']
+                    promo_id = promo['id']
+                    promo_discount_percent = float(promo['discount_percent'])
+
+                    # Специальная логика для акции '3 пива по цене 2'
+                    if promotion_name == '3 пива по цене 2' and product_id == 14 and total_quantity >= 3:
+                        # Скидка применяется к наименее дорогим товарам. В акции 3 по цене 2, один товар бесплатен.
+                        num_free_items = total_quantity // 3
+                        total_discount_for_product = num_free_items * original_price_per_item
+                        # Рассчитываем эффективную цену за единицу для отображения
+                        total_price_for_product_with_discount = (total_quantity * original_price_per_item) - total_discount_for_product
+                        effective_price_per_item = total_price_for_product_with_discount / total_quantity if total_quantity > 0 else original_price_per_item
+                        applied_discount_percent = (total_discount_for_product / (total_quantity * original_price_per_item)) * 100 if (total_quantity * original_price_per_item) > 0 else 0
+                        applied_discount_percent = round(applied_discount_percent, 2)
+                    # Добавляем проверку: если это акция '3 по цене 2', не применяем стандартную процентную скидку, если количество меньше 3
+                    elif not (promotion_name == '3 пива по цене 2' and product_id == 14) and promo_discount_percent > 0:
+                         # Для обычных процентных скидок
+                        effective_price_per_item = round(original_price_per_item * (1 - promo_discount_percent / 100), 2)
+                        applied_discount_percent = promo_discount_percent
+                        total_discount_for_product = (original_price_per_item - effective_price_per_item) * total_quantity
+
+                # Добавляем каждую позицию обратно с рассчитанными ценами и скидками
+                for item in items:
+                     processed_cart_items.append({
+                        'id': item['id'],
+                        'product_id': item['product_id'],
+                        'name': item['name'],
+                        'quantity': item['quantity'],
+                        'original_price': original_price_per_item,
+                        'discounted_price': effective_price_per_item, # Используем эффективную цену за единицу
+                        'price': effective_price_per_item, # Используем эффективную цену за единицу для отображения итогов
+                        'discount_percent': applied_discount_percent,
+                        'discount_applied_per_item': round((original_price_per_item - effective_price_per_item), 2),
+                        'promotion_name': promotion_name
+                     })
+
+
+            return jsonify(processed_cart_items), 200
+    finally:
+        conn.close()
+
+# Очистка корзины
+@app.route('/api/cart', methods=['DELETE'])
+def clear_cart():
+    if 'user_id' not in session:
+        return jsonify({'error': 'Unauthorized'}), 401
+
+    conn = get_db_connection()
+    try:
+        with conn.cursor() as cursor:
+            cursor.execute("DELETE FROM cart WHERE user_id = %s", (session['user_id'],))
+            conn.commit()
+            log_user_activity(session['user_id'], 'clear_cart', 'Cart cleared')
+            return jsonify({'message': 'Cart cleared successfully'}), 200
+    except Exception as e:
+        conn.rollback()
+        app.logger.error(f"Failed to clear cart: {e}")
+        return jsonify({'error': 'Failed to clear cart'}), 500
     finally:
         conn.close()
 

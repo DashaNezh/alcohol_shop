@@ -64,6 +64,7 @@
             <h2 class="text-xl font-bold mb-2">Корзина</h2>
             <div id="cart-list" class="bg-white p-4 rounded shadow"></div>
             <button id="checkout-btn" class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 mt-2">Оформить заказ</button>
+            <button id="clear-cart-btn" class="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600 mt-2 ml-2">Очистить корзину</button>
         </div>
 
         <!-- Checkout Form -->
@@ -255,15 +256,28 @@
 
             if (cartItems.length === 0) {
                 cartList.innerHTML = '<p>Корзина пуста</p>';
+                // Скрываем кнопки оформления и очистки, если корзина пуста
+                document.getElementById('checkout-btn').classList.add('hidden');
+                document.getElementById('clear-cart-btn').classList.add('hidden');
                 return;
             }
+
+            // Показываем кнопки оформления и очистки, если в корзине есть товары
+            document.getElementById('checkout-btn').classList.remove('hidden');
+            document.getElementById('clear-cart-btn').classList.remove('hidden');
 
             let total = 0;
             cartItems.forEach(item => {
                 const div = document.createElement('div');
                 div.className = 'border-b py-2';
+                
+                let priceDisplay = `${item.discounted_price} руб.`;
+                if (item.discount_percent > 0) {
+                    priceDisplay = `<span class="text-gray-500 line-through">${item.original_price} руб.</span> ${item.discounted_price} руб. (-${item.discount_percent}%)`;
+                }
+
                 div.innerHTML = `
-                    <p>${item.name} - ${item.quantity} x ${item.price} руб. = ${item.quantity * item.price} руб.</p>
+                    <p>${item.name} - ${item.quantity} x ${priceDisplay} = ${item.quantity * item.price} руб.</p>
                 `;
                 cartList.appendChild(div);
                 total += item.quantity * item.price;
@@ -321,7 +335,21 @@
             }
         }
 
+        async function clearCart() {
+            const response = await fetch(`${apiUrl}/cart`, {
+                method: 'DELETE',
+                headers: { 'Content-Type': 'application/json' }
+            });
+
+            const result = await response.json();
+            alert(result.message || result.error);
+            if (response.ok) {
+                loadCart(); // Перезагружаем корзину после очистки
+            }
+        }
+
         document.getElementById('logout-btn').addEventListener('click', logout);
+        document.getElementById('clear-cart-btn').addEventListener('click', clearCart);
 
         async function loadRecommendations() {
             const response = await fetch(`${apiUrl}/recommendations`, { credentials: 'include' });
