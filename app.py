@@ -904,5 +904,59 @@ def get_recommendations():
             return jsonify([]), 200
 
 
+# Отмена заказа
+@app.route('/api/orders/<int:order_id>/cancel', methods=['POST'])
+def cancel_order(order_id):
+    if 'user_id' not in session:
+        return jsonify({'error': 'Unauthorized'}), 401
+
+    conn = get_db_connection()
+    try:
+        with conn.cursor(cursor_factory=RealDictCursor) as cursor:
+            # Проверяем, существует ли заказ и принадлежит ли он пользователю (или пользователь админ)
+            cursor.execute("SELECT id, user_id, status FROM orders WHERE id = %s", (order_id,))
+            order = cursor.fetchone()
+
+            if not order:
+                return jsonify({'error': 'Order not found'}), 404
+
+            # Только владелец заказа или админ может отменить
+            if order['user_id'] != session['user_id'] and not session.get('is_admin'):
+                return jsonify({'error': 'Forbidden'}), 403
+
+            # Проверяем статус заказа - отменить можно только 'paid' или 'pending' (если есть)
+            if order['status'] not in ['paid', 'pending']:
+                return jsonify({'error': f"Cannot cancel order with status: {order['status']}"}), 400
+
+            # Получаем позиции заказа
+            cursor.execute("SELECT product_id, quantity FROM order_items WHERE order_id = %s", (order_id,))
+            order_items = cursor.fetchall()
+
+            # Возвращаем товары на склад
+            for item in order_items:
+                cursor.execute(
+                    "UPDATE products SET stock = stock + %s WHERE id = %s",
+                    (item['quantity'], item['product_id'])
+                )
+
+            # Обновляем статус заказа
+            cursor.execute(
+                "UPDATE orders SET status = %s WHERE id = %s",
+                ('cancelled', order_id)
+            )
+
+            log_user_activity(session['user_id'], 'cancel_order', f'Cancelled order_id: {order_id}')
+
+            conn.commit()
+            return jsonify({'message': 'Order cancelled successfully'}), 200
+
+    except Exception as e:
+        conn.rollback()
+        app.logger.error(f"Failed to cancel order {order_id}: {e}")
+        return jsonify({'error': 'Failed to cancel order'}), 500
+    finally:
+        conn.close()
+
+
 if __name__ == '__main__':
     app.run(debug=True)

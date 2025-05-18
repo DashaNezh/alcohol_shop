@@ -166,6 +166,31 @@
                 if (response.ok) {
                      const associatedQuantityInput = document.getElementById(`quantity-${productId}`) || document.getElementById(`rec-quantity-${productId}`);
                      if(associatedQuantityInput) associatedQuantityInput.value = 1;
+
+                     // Find and update the stock display
+                     const stockElement = productDiv.querySelector('p.text-sm.text-gray-600.mt-2'); // Find the element with stock info
+
+                     if (stockElement) {
+                         const stockText = stockElement.textContent;
+                         const stockMatch = stockText.match(/В наличии: (\d+)/);
+                         if (stockMatch && stockMatch[1]) {
+                             let currentStock = parseInt(stockMatch[1]);
+                             let newStock = currentStock - quantity;
+                             stockElement.textContent = `В наличии: ${newStock}`; // Update stock text
+
+                             // Update the max attribute of the quantity input
+                             if(associatedQuantityInput) associatedQuantityInput.max = newStock;
+                             if(newStock === 0) {
+                                associatedQuantityInput.value = 0;
+                                associatedQuantityInput.disabled = true;
+                                target.disabled = true; // Disable add to cart button
+                                target.textContent = 'Нет в наличии';
+                                target.classList.remove('bg-blue-600', 'hover:bg-blue-700');
+                                target.classList.add('bg-gray-400', 'cursor-not-allowed');
+                             }
+                         }
+                     }
+
                 } else {
                     alert(result.error || 'Ошибка при добавлении в корзину');
                 }
@@ -234,6 +259,32 @@
                 if (response.ok) {
                      const associatedQuantityInput = document.getElementById(`quantity-${productId}`) || document.getElementById(`rec-quantity-${productId}`);
                      if(associatedQuantityInput) associatedQuantityInput.value = 1;
+
+                     // Find and update the stock display
+                     const stockElement = recommendationDiv.querySelector('p.text-sm.text-gray-600.mt-2'); // Find the element with stock info
+
+                     if (stockElement) {
+                         const stockText = stockElement.textContent;
+                         const stockMatch = stockText.match(/В наличии: (\d+)/);
+                         if (stockMatch && stockMatch[1]) {
+                             let currentStock = parseInt(stockMatch[1]);
+                             let newStock = currentStock - quantity;
+                             stockElement.textContent = `В наличии: ${newStock}`; // Update stock text
+
+                              // Update the max attribute of the quantity input
+                             if(associatedQuantityInput) associatedQuantityInput.max = newStock;
+
+                             if(newStock === 0) {
+                                associatedQuantityInput.value = 0;
+                                associatedQuantityInput.disabled = true;
+                                target.disabled = true; // Disable add to cart button
+                                target.textContent = 'Нет в наличии';
+                                target.classList.remove('bg-blue-600', 'hover:bg-blue-700');
+                                target.classList.add('bg-gray-400', 'cursor-not-allowed');
+                             }
+                         }
+                     }
+
                 } else {
                     alert(result.error || 'Ошибка при добавлении в корзину');
                 }
@@ -242,6 +293,10 @@
 
         // Initial check
         checkAuth();
+
+        // Add event listener for logout button
+        document.getElementById('logout-btn').addEventListener('click', logout);
+
     </script>
 </body>
 </html>
