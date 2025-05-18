@@ -233,30 +233,78 @@ def get_product(product_id):
     finally:
         conn.close()
 
-# Добавление товара (только для администратора)
-@app.route('/api/products', methods=['POST'])
-def add_product():
-    if not session.get('is_admin'):
-        return jsonify({'error': 'Forbidden'}), 403
+# Получение списка брендов
+@app.route('/api/brands', methods=['GET'])
+def get_brands():
+    conn = get_db_connection()
+    try:
+        with conn.cursor(cursor_factory=RealDictCursor) as cursor:
+            cursor.execute("SELECT id, name, description FROM brands ORDER BY name")
+            brands = cursor.fetchall()
+            return jsonify(brands), 200
+    finally:
+        conn.close()
 
+# Добавление нового бренда
+@app.route('/api/brands', methods=['POST'])
+@admin_required
+def add_brand():
     data = request.get_json()
     name = data.get('name')
-    category_id = data.get('category_id')
-    brand_id = data.get('brand_id')
-    price = Decimal(data.get('price'))
-    volume = data.get('volume')
-    strength = data.get('strength')
-    stock = data.get('stock')
+    description = data.get('description')
+
+    if not name:
+        return jsonify({'error': 'Brand name is required'}), 400
 
     conn = get_db_connection()
     try:
         with conn.cursor() as cursor:
             cursor.execute(
+                "INSERT INTO brands (name, description) VALUES (%s, %s) RETURNING id",
+                (name, description)
+            )
+            brand_id = cursor.fetchone()[0]
+            conn.commit()
+            return jsonify({'message': 'Brand added successfully', 'id': brand_id}), 201
+    except Exception as e:
+        conn.rollback()
+        return jsonify({'error': str(e)}), 500
+    finally:
+        conn.close()
+
+# Обновление маршрута добавления товара
+@app.route('/api/products', methods=['POST'])
+@admin_required
+def add_product():
+    data = request.get_json()
+    name = data.get('name')
+    category_name = data.get('category_name')
+    brand_id = data.get('brand_id')
+    price = Decimal(data.get('price'))
+    volume = data.get('volume')
+    strength = data.get('strength')
+    stock = data.get('stock')
+    image_url = data.get('image_url')
+
+    if not all([name, category_name, brand_id, price, volume, strength, stock]):
+        return jsonify({'error': 'All fields are required'}), 400
+
+    conn = get_db_connection()
+    try:
+        with conn.cursor() as cursor:
+            # Получаем ID категории по имени
+            cursor.execute("SELECT id FROM categories WHERE name = %s", (category_name,))
+            category = cursor.fetchone()
+            if not category:
+                return jsonify({'error': 'Category not found'}), 404
+            category_id = category[0]
+
+            cursor.execute(
                 """
-                INSERT INTO products (name, category_id, brand_id, price, volume, strength, stock)
-                VALUES (%s, %s, %s, %s, %s, %s, %s)
+                INSERT INTO products (name, category_id, brand_id, price, volume, strength, stock, image_url)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
                 """,
-                (name, category_id, brand_id, price, volume, strength, stock)
+                (name, category_id, brand_id, price, volume, strength, stock, image_url)
             )
             conn.commit()
             return jsonify({'message': 'Product added successfully'}), 201
@@ -447,7 +495,7 @@ def checkout():
     try:
         with conn.cursor(cursor_factory=RealDictCursor) as cursor:
             cursor.execute("""
-                SELECT c.quantity, p.id as product_id, p.price, p.name, p.stock
+                SELECT c.quantity, p.id as product_id, p.price, p.name, p.stock, p.category_id
                 FROM cart c
                 JOIN products p ON c.product_id = p.id
                 WHERE c.user_id = %s
@@ -462,8 +510,37 @@ def checkout():
                 if item['stock'] < item['quantity']:
                     return jsonify({'error': f'Insufficient stock for {item["name"]}'}), 400
 
-            total_price = sum(Decimal(str(item['quantity'])) * item['price'] for item in cart_items)
-            delivery_cost = Decimal('300.00') if delivery_method == 'courier' else Decimal('0.00')
+            # --- Применение скидок ---
+            total_price = 0
+            discounted_items = []
+            now = "CURRENT_TIMESTAMP"
+            for item in cart_items:
+                # Поиск активной акции для товара
+                cursor.execute('''
+                    SELECT discount_percent FROM promotions
+                    WHERE (
+                        (product_id = %s) OR
+                        (id IN (SELECT promotion_id FROM promotion_categories WHERE category_id = %s))
+                    )
+                    AND start_date <= NOW() AND end_date >= NOW()
+                    ORDER BY discount_percent DESC LIMIT 1
+                ''', (item['product_id'], item['category_id']))
+                promo = cursor.fetchone()
+                discount_percent = float(promo['discount_percent']) if promo else 0
+                price = float(item['price'])
+                discount_applied = 0
+                if discount_percent > 0:
+                    discount_applied = round(price * discount_percent / 100, 2)
+                    price = round(price - discount_applied, 2)
+                total_price += price * item['quantity']
+                discounted_items.append({
+                    'product_id': item['product_id'],
+                    'quantity': item['quantity'],
+                    'price': price,
+                    'discount_applied': discount_applied
+                })
+
+            delivery_cost = 300.00 if delivery_method == 'courier' else 0.00
 
             cursor.execute(
                 """
@@ -475,10 +552,10 @@ def checkout():
             )
             order_id = cursor.fetchone()['id']
 
-            for item in cart_items:
+            for item in discounted_items:
                 cursor.execute(
-                    "INSERT INTO order_items (order_id, product_id, quantity, price) VALUES (%s, %s, %s, %s)",
-                    (order_id, item['product_id'], item['quantity'], item['price'])
+                    "INSERT INTO order_items (order_id, product_id, quantity, price, discount_applied) VALUES (%s, %s, %s, %s, %s)",
+                    (order_id, item['product_id'], item['quantity'], item['price'], item['discount_applied'])
                 )
 
             log_user_activity(session['user_id'], 'checkout',
@@ -487,7 +564,7 @@ def checkout():
             cursor.execute("DELETE FROM cart WHERE user_id = %s", (session['user_id'],))
             conn.commit()
             return jsonify(
-                {'message': 'Order placed', 'order_id': order_id, 'total_price': str(total_price + delivery_cost)}), 201
+                {'message': 'Заказ оформлен', 'order_id': order_id, 'total_price': str(total_price + delivery_cost)}), 201
     finally:
         conn.close()
 
@@ -560,6 +637,30 @@ def update_product(product_id):
             conn.close()
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)})
+
+@app.route('/api/promotions/active')
+def get_active_promotion():
+    product_id = request.args.get('product_id', type=int)
+    category_id = request.args.get('category_id', type=int)
+    conn = get_db_connection()
+    try:
+        with conn.cursor(cursor_factory=RealDictCursor) as cursor:
+            cursor.execute('''
+                SELECT discount_percent FROM promotions
+                WHERE (
+                    (product_id = %s) OR
+                    (id IN (SELECT promotion_id FROM promotion_categories WHERE category_id = %s))
+                )
+                AND start_date <= NOW() AND end_date >= NOW()
+                ORDER BY discount_percent DESC LIMIT 1
+            ''', (product_id, category_id))
+            promo = cursor.fetchone()
+            if promo:
+                return jsonify({'discount_percent': float(promo['discount_percent'])})
+            else:
+                return jsonify({})
+    finally:
+        conn.close()
 
 if __name__ == '__main__':
     app.run(debug=True)
