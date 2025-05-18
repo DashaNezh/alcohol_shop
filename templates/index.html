@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Alcohol Shop</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { font-family: Arial, sans-serif; }
+        .hidden { display: none; }
+    </style>
+</head>
+<body class="bg-gray-100">
+    <div class="container mx-auto p-4">
+        <!-- Header -->
+        <header class="bg-blue-600 text-white p-4 rounded mb-4">
+            <div class="flex justify-between items-center">
+                <h1 class="text-2xl font-bold">Alcohol Shop</h1>
+                <div class="flex items-center space-x-4">
+                    <div id="auth-status" class="mt-2"></div>
+                    <button id="logout-btn" class="hidden bg-red-500 px-4 py-2 rounded hover:bg-red-600">Logout</button>
+                </div>
+            </div>
+        </header>
+
+        <!-- Auth Section -->
+        <div id="auth-section" class="mb-4">
+            <!-- Register Form -->
+            <div id="register-form" class="bg-white p-4 rounded shadow mb-4">
+                <h2 class="text-xl font-bold mb-2">Register</h2>
+                <input id="register-username" type="text" placeholder="Username" class="border p-2 mb-2 w-full">
+                <input id="register-email" type="email" placeholder="Email" class="border p-2 mb-2 w-full">
+                <input id="register-password" type="password" placeholder="Password" class="border p-2 mb-2 w-full">
+                <input id="register-first-name" type="text" placeholder="First Name" class="border p-2 mb-2 w-full">
+                <input id="register-last-name" type="text" placeholder="Last Name" class="border p-2 mb-2 w-full">
+                <input id="register-phone" type="text" placeholder="Phone" class="border p-2 mb-2 w-full">
+                <input id="register-address" type="text" placeholder="Address" class="border p-2 mb-2 w-full">
+                <button onclick="register()" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">Register</button>
+            </div>
+
+            <!-- Login Form -->
+            <div id="login-form" class="bg-white p-4 rounded shadow">
+                <h2 class="text-xl font-bold mb-2">Login</h2>
+                <input id="login-username" type="text" placeholder="Username" class="border p-2 mb-2 w-full">
+                <input id="login-password" type="password" placeholder="Password" class="border p-2 mb-2 w-full">
+                <button onclick="login()" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">Login</button>
+            </div>
+        </div>
+
+        <!-- Products Section -->
+        <div id="products-section" class="hidden mb-4">
+            <h2 class="text-xl font-bold mb-2">Products</h2>
+            <div id="products-list" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"></div>
+        </div>
+
+        <!-- Cart Section -->
+        <div id="cart-section" class="hidden mb-4">
+            <h2 class="text-xl font-bold mb-2">Cart</h2>
+            <div id="cart-list" class="bg-white p-4 rounded shadow"></div>
+            <button id="checkout-btn" class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 mt-2">Proceed to Checkout</button>
+        </div>
+
+        <!-- Checkout Form -->
+        <div id="checkout-form" class="hidden bg-white p-4 rounded shadow">
+            <h2 class="text-xl font-bold mb-2">Checkout</h2>
+            <input id="delivery-address" type="text" placeholder="Delivery Address" class="border p-2 mb-2 w-full">
+            <select id="delivery-method" class="border p-2 mb-2 w-full">
+                <option value="courier">Courier</option>
+                <option value="pickup">Pickup</option>
+                <option value="post">Post</option>
+            </select>
+            <select id="payment-method" class="border p-2 mb-2 w-full">
+                <option value="card">Card</option>
+                <option value="cash">Cash</option>
+                <option value="online">Online</option>
+            </select>
+            <button onclick="checkout()" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">Place Order</button>
+        </div>
+    </div>
+
+    <script>
+        const apiUrl = 'http://127.0.0.1:5000/api';
+        async function checkAuth() {
+            const response = await fetch(`${apiUrl}/cart`, { method: 'GET', credentials: 'include' });
+            const authStatus = document.getElementById('auth-status');
+            const authSection = document.getElementById('auth-section');
+            const productsSection = document.getElementById('products-section');
+            const cartSection = document.getElementById('cart-section');
+            const logoutBtn = document.getElementById('logout-btn');
+
+            if (response.ok) {
+                // Проверяем, является ли пользователь админом
+                const meResponse = await fetch(`${apiUrl}/me`, { credentials: 'include' });
+                const meData = await meResponse.json();
+                
+                authStatus.innerHTML = 'You are logged in';
+                if (meData.is_admin) {
+                    const adminBtn = document.createElement('a');
+                    adminBtn.href = '/admin';
+                    adminBtn.className = 'bg-yellow-500 text-white px-4 py-2 rounded hover:bg-yellow-600 ml-2';
+                    adminBtn.textContent = 'Admin Panel';
+                    authStatus.appendChild(adminBtn);
+                }
+                
+                authSection.classList.add('hidden');
+                productsSection.classList.remove('hidden');
+                cartSection.classList.remove('hidden');
+                logoutBtn.classList.remove('hidden');
+                loadProducts();
+                loadCart();
+            } else {
+                authStatus.textContent = 'Please log in or register';
+                authSection.classList.remove('hidden');
+                productsSection.classList.add('hidden');
+                cartSection.classList.add('hidden');
+                logoutBtn.classList.add('hidden');
+            }
+        }
+
+        async function register() {
+            const username = document.getElementById('register-username').value;
+            const email = document.getElementById('register-email').value;
+            const password = document.getElementById('register-password').value;
+            const first_name = document.getElementById('register-first-name').value;
+            const last_name = document.getElementById('register-last-name').value;
+            const phone = document.getElementById('register-phone').value;
+            const address = document.getElementById('register-address').value;
+
+            const response = await fetch(`${apiUrl}/register`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    username, email, password, first_name, last_name, phone, address, registration_source: 'web'
+                })
+            });
+
+            const result = await response.json();
+            alert(result.message || result.error);
+            if (response.ok) checkAuth();
+        }
+
+        async function login() {
+            const username = document.getElementById('login-username').value;
+            const password = document.getElementById('login-password').value;
+
+            const response = await fetch(`${apiUrl}/login`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username, password }),
+                credentials: 'include'  // добавь, если сессии на сервере
+            });
+
+            const result = await response.json();
+            alert(result.message || result.error);
+            if (response.ok) {
+                checkAuth();  // Показываем товары для всех пользователей
+                if (result.role === 'admin') {
+                    // Добавляем кнопку для перехода в админ-панель
+                    const adminBtn = document.createElement('a');
+                    adminBtn.href = '/admin';
+                    adminBtn.className = 'bg-yellow-500 text-white px-4 py-2 rounded hover:bg-yellow-600 ml-2';
+                    adminBtn.textContent = 'Admin Panel';
+                    document.getElementById('auth-status').appendChild(adminBtn);
+                }
+            }
+        }
+
+        async function logout() {
+            const response = await fetch(`${apiUrl}/logout`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' }
+            });
+
+            const result = await response.json();
+            alert(result.message || result.error);
+            if (response.ok) checkAuth();
+        }
+
+        async function loadProducts() {
+            const response = await fetch(`${apiUrl}/products`);
+            const products = await response.json();
+            const productsList = document.getElementById('products-list');
+            productsList.innerHTML = '';
+
+            products.forEach(product => {
+                const div = document.createElement('div');
+                div.className = 'bg-white p-4 rounded shadow';
+                div.innerHTML = `
+                    ${product.image_url ? `<img src="${product.image_url}" alt="${product.name}" class="w-full h-48 object-cover mb-4 rounded">` : ''}
+                    <h3 class="text-lg font-bold">${product.name}</h3>
+                    <p>Category: ${product.category_name}</p>
+                    <p>Brand: ${product.brand_name}</p>
+                    <p>Price: ${product.price} RUB</p>
+                    ${product.volume ? `<p>Volume: ${product.volume} ml</p>` : ''}
+                    ${product.strength ? `<p>Strength: ${product.strength}%</p>` : ''}
+                    <p>Stock: ${product.stock}</p>
+                    <button onclick="addToCart(${product.id})" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">Add to Cart</button>
+                `;
+                productsList.appendChild(div);
+            });
+        }
+
+        async function addToCart(productId) {
+            const response = await fetch(`${apiUrl}/cart`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ product_id: productId, quantity: 1 })
+            });
+
+            const result = await response.json();
+            alert(result.message || result.error);
+            if (response.ok) loadCart();
+        }
+
+        async function loadCart() {
+            const response = await fetch(`${apiUrl}/cart`, { method: 'GET', credentials: 'include' });
+            const cartItems = await response.json();
+            const cartList = document.getElementById('cart-list');
+            cartList.innerHTML = '';
+
+            if (cartItems.length === 0) {
+                cartList.innerHTML = '<p>Cart is empty</p>';
+                return;
+            }
+
+            let total = 0;
+            cartItems.forEach(item => {
+                const div = document.createElement('div');
+                div.className = 'border-b py-2';
+                div.innerHTML = `
+                    <p>${item.name} - ${item.quantity} x ${item.price} RUB = ${item.quantity * item.price} RUB</p>
+                `;
+                cartList.appendChild(div);
+                total += item.quantity * item.price;
+            });
+
+            const totalDiv = document.createElement('div');
+            totalDiv.className = 'font-bold mt-2';
+            totalDiv.textContent = `Total: ${total} RUB`;
+            cartList.appendChild(totalDiv);
+        }
+
+        document.getElementById('checkout-btn').addEventListener('click', () => {
+            document.getElementById('checkout-form').classList.remove('hidden');
+        });
+
+        async function checkout() {
+            const delivery_address = document.getElementById('delivery-address').value;
+            const delivery_method = document.getElementById('delivery-method').value;
+            const payment_method = document.getElementById('payment-method').value;
+
+            const response = await fetch(`${apiUrl}/checkout`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ delivery_address, delivery_method, payment_method })
+            });
+
+            const result = await response.json();
+            alert(result.message || result.error);
+            if (response.ok) {
+                document.getElementById('checkout-form').classList.add('hidden');
+                loadCart();
+            }
+        }
+
+        document.getElementById('logout-btn').addEventListener('click', logout);
+
+        // Initial check
+        checkAuth();
+    </script>
+</body>
+</html>
