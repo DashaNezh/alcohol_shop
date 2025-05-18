@@ -95,7 +95,7 @@
                 // Проверяем, является ли пользователь админом
                 const meResponse = await fetch(`${apiUrl}/me`, { credentials: 'include' });
                 const meData = await meResponse.json();
-                
+
                 authStatus.innerHTML = 'Вы вошли в систему';
                 if (meData.is_admin) {
                     const adminBtn = document.createElement('a');
@@ -104,7 +104,7 @@
                     adminBtn.textContent = 'Админ-панель';
                     authStatus.appendChild(adminBtn);
                 }
-                
+
                 authSection.classList.add('hidden');
                 productsSection.classList.remove('hidden');
                 cartSection.classList.remove('hidden');
@@ -208,6 +208,11 @@
                     ${product.volume ? `<p>Объем: ${product.volume} мл</p>` : ''}
                     ${product.strength ? `<p>Крепость: ${product.strength}%</p>` : ''}
                     <p>В наличии: ${product.stock}</p>
+                    <div class="flex items-center space-x-2 mb-2">
+                        <label for="quantity-${product.id}" class="text-sm">Количество:</label>
+                        <input type="number" id="quantity-${product.id}" min="1" max="${product.stock}" value="1" 
+                               class="border p-1 w-16 text-center">
+                    </div>
                     <button onclick="addToCart(${product.id})" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">В корзину</button>
                 `;
                 productsList.appendChild(div);
@@ -215,10 +220,16 @@
         }
 
         async function addToCart(productId) {
+            const quantity = parseInt(document.getElementById(`quantity-${productId}`).value);
+            if (isNaN(quantity) || quantity < 1) {
+                alert('Пожалуйста, введите корректное количество');
+                return;
+            }
+
             const response = await fetch(`${apiUrl}/cart`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ product_id: productId, quantity: 1 })
+                body: JSON.stringify({ product_id: productId, quantity: quantity })
             });
 
             const result = await response.json();
@@ -262,7 +273,7 @@
             const deliveryMethod = document.getElementById('delivery-method').value;
             const deliveryCost = deliveryMethod === 'courier' ? 300 : 0;
             const totalWithDelivery = cartTotal + deliveryCost;
-            
+
             const totalPriceDiv = document.getElementById('total-price');
             totalPriceDiv.innerHTML = `
                 <div class="text-gray-600">Сумма товаров: ${cartTotal} руб.</div>
@@ -284,9 +295,9 @@
             const response = await fetch(`${apiUrl}/checkout`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ 
-                    delivery_address, 
-                    delivery_method, 
+                body: JSON.stringify({
+                    delivery_address,
+                    delivery_method,
                     payment_method,
                     total_price: cartTotal + (delivery_method === 'courier' ? 300 : 0)
                 })
