@@ -10,55 +10,68 @@
         .hidden { display: none; }
     </style>
 </head>
-<body class="bg-gray-100">
-    <div class="container mx-auto p-4">
+<body class="bg-gray-200 font-sans">
+    <div class="container mx-auto p-8 bg-gray-100 rounded-xl shadow-2xl my-10">
         <!-- Header -->
-        <header class="bg-blue-600 text-white p-4 rounded mb-4">
-            <div class="flex justify-between items-center">
-                <h1 class="text-2xl font-bold">AlcoDasha</h1>
-                <div class="flex items-center space-x-4">
-                    <div id="auth-status" class="mt-2"></div>
-                    <button id="logout-btn" class="hidden bg-red-500 px-4 py-2 rounded hover:bg-red-600">Выйти</button>
+        <header class="bg-blue-900 text-white p-6 rounded-t-xl mb-8 shadow-xl flex justify-between items-center">
+            <h1 class="text-3xl font-extrabold">AlcoDasha</h1>
+            <div class="flex items-center space-x-4">
+                <div id="auth-status" class="text-lg flex items-center">
+                    <!-- Content added by checkAuth() -->
                 </div>
+                <button id="logout-btn" class="hidden bg-red-700 hover:bg-red-800 px-5 py-2 rounded-lg text-base font-semibold transition duration-300 ease-in-out">Выйти</button>
             </div>
         </header>
 
         <!-- Products Section -->
-        <div id="products-section" class="mb-4">
-            <h2 class="text-xl font-bold mb-2">Товары</h2>
-            <div id="products-list" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"></div>
+        <div id="products-section" class="mb-10">
+            <h2 class="text-2xl font-bold text-gray-800 mb-6 border-b-2 border-blue-500 pb-3">Товары</h2>
+            <div id="products-list" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8"></div>
         </div>
 
         <!-- Recommendations Section -->
-        <div id="recommendations-section" class="mb-4">
-            <h2 class="text-xl font-bold mb-2">Рекомендации для вас</h2>
-            <div id="recommendations-list" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"></div>
+        <div id="recommendations-section" class="mb-10">
+            <h2 class="text-2xl font-bold text-gray-800 mb-6 border-b-2 border-blue-500 pb-3">Рекомендации для вас</h2>
+            <div id="recommendations-list" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8"></div>
         </div>
 
         <!-- Cart Section -->
-        <div id="cart-section" class="hidden mb-4">
-            <h2 class="text-xl font-bold mb-2">Корзина</h2>
-            <div id="cart-list" class="bg-white p-4 rounded shadow"></div>
-            <button id="checkout-btn" class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 mt-2">Оформить заказ</button>
-            <button id="clear-cart-btn" class="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600 mt-2 ml-2">Очистить корзину</button>
+        <div id="cart-section" class="hidden mb-10">
+            <h2 class="text-2xl font-bold text-gray-800 mb-6 border-b-2 border-blue-500 pb-3">Корзина</h2>
+            <div id="cart-list" class="bg-white p-6 rounded-lg shadow-md"></div>
+            <div class="mt-8 flex justify-end space-x-4">
+                <button id="clear-cart-btn" class="bg-red-700 hover:bg-red-800 text-white px-6 py-3 rounded-lg font-semibold transition duration-300 ease-in-out">Очистить корзину</button>
+                <button id="checkout-btn" class="bg-green-700 hover:bg-green-800 text-white px-6 py-3 rounded-lg font-semibold transition duration-300 ease-in-out">Оформить заказ</button>
+            </div>
         </div>
 
         <!-- Checkout Form -->
-        <div id="checkout-form" class="hidden bg-white p-4 rounded shadow">
-            <h2 class="text-xl font-bold mb-2">Оформление заказа</h2>
-            <input id="delivery-address" type="text" placeholder="Адрес доставки" class="border p-2 mb-2 w-full">
-            <select id="delivery-method" class="border p-2 mb-2 w-full" onchange="updateTotalPrice()">
-                <option value="courier">Курьер (300 руб.)</option>
-                <option value="pickup">Самовывоз (бесплатно)</option>
-                <option value="post">Почта (бесплатно)</option>
-            </select>
-            <select id="payment-method" class="border p-2 mb-2 w-full">
-                <option value="card">Карта</option>
-                <option value="cash">Наличные</option>
-                <option value="online">Онлайн</option>
-            </select>
-            <div id="total-price" class="text-xl font-bold mb-4"></div>
-            <button onclick="checkout()" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">Подтвердить заказ</button>
+        <div id="checkout-form" class="hidden bg-white p-6 rounded-lg shadow-md mb-10">
+            <h2 class="text-2xl font-bold text-gray-800 mb-6 border-b-2 border-blue-500 pb-3">Оформление заказа</h2>
+            <div class="space-y-6">
+                <div>
+                    <label for="delivery-address" class="block text-sm font-medium text-gray-700 mb-1">Адрес доставки</label>
+                    <input id="delivery-address" type="text" placeholder="Введите адрес" class="border border-gray-300 p-3 rounded-md w-full focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent transition duration-200 ease-in-out">
+                </div>
+                <div>
+                    <label for="delivery-method" class="block text-sm font-medium text-gray-700 mb-1">Способ доставки</label>
+                    <select id="delivery-method" class="border border-gray-300 p-3 rounded-md w-full bg-white focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent transition duration-200 ease-in-out" onchange="updateTotalPrice()">
+                        <option value="courier">Курьер (300 руб.)</option>
+                        <option value="pickup">Самовывоз (бесплатно)</option>
+                        <option value="post">Почта (бесплатно)</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="payment-method" class="block text-sm font-medium text-gray-700 mb-1">Способ оплаты</label>
+                    <select id="payment-method" class="border border-gray-300 p-3 rounded-md w-full bg-white focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent transition duration-200 ease-in-out">
+                        <option value="card">Карта</option>
+                        <option value="cash">Наличные</option>
+                        <option value="online">Онлайн</option>
+                    </select>
+                </div>
+            </div>
+            <div id="total-price" class="text-2xl font-bold text-gray-900 mt-8 text-right"></div>
+            <button onclick="checkout()" class="bg-blue-600 hover:bg-blue-700 text-white px-8 py-4 rounded-lg font-bold transition duration-300 ease-in-out mt-8 w-full text-center">Подтвердить заказ</button>
         </div>
     </div>
 
@@ -79,19 +92,21 @@
                 if (userData.is_admin) {
                     const adminBtn = document.createElement('a');
                     adminBtn.href = '/admin';
-                    adminBtn.className = 'bg-yellow-500 text-white px-4 py-2 rounded hover:bg-yellow-600 ml-2';
-                    adminBtn.textContent = 'Админ-панель';
+                    adminBtn.className = 'text-white hover:text-gray-200 ml-4 inline-flex items-center';
+                    adminBtn.innerHTML = '<i class="fas fa-user-shield mr-2"></i>Админ-панель';
                     authStatus.appendChild(adminBtn);
                 }
 
                 const profileLink = document.createElement('a');
                 profileLink.href = '/profile';
-                profileLink.className = 'text-white hover:text-gray-200 ml-4';
-                profileLink.textContent = 'Профиль';
+                profileLink.className = 'text-white hover:text-gray-200 ml-4 inline-flex items-center';
+                profileLink.innerHTML = '<i class="fas fa-user-circle mr-2"></i>Профиль';
                 authStatus.appendChild(profileLink);
 
                 cartSection.classList.remove('hidden');
                 logoutBtn.classList.remove('hidden');
+                logoutBtn.className = 'text-white hover:text-gray-200 ml-4 inline-flex items-center';
+                logoutBtn.innerHTML = '<i class="fas fa-sign-out-alt mr-2"></i>Выйти';
                 loadCart();
                 loadProducts();
                 loadRecommendations();
@@ -130,61 +145,80 @@
                 const discount = promoData.discount_percent || 0;
 
                 const div = document.createElement('div');
-                div.className = 'bg-white p-4 rounded shadow';
+                div.className = 'bg-white p-6 rounded-lg shadow-md flex flex-col';
                 div.innerHTML = `
-                    ${product.image_url ? `<img src="${product.image_url}" alt="${product.name}" class="w-full h-48 object-cover mb-4 rounded">` : ''}
-                    <h3 class="text-lg font-bold">${product.name}</h3>
-                    <p>Категория: ${product.category_name}</p>
-                    <p>Бренд: ${product.brand_name}</p>
+                    ${product.image_url ? `<img src="${product.image_url}" alt="${product.name}" class="w-full h-48 object-contain mb-4 rounded-md">` : ''}
+                    <h3 class="text-xl font-semibold text-gray-900 mb-2">${product.name}</h3>
+                    <p class="text-sm text-gray-600">Категория: ${product.category_name}</p>
+                    <p class="text-sm text-gray-600">Бренд: ${product.brand_name}</p>
                     ${discount > 0 ? `
-                        <p class="text-gray-500 line-through">Цена: ${product.price} руб.</p>
-                        <p class="text-red-600 font-bold">Цена со скидкой: ${Math.round(product.price * (1 - discount / 100))} руб.</p>
-                        <p class="text-green-600">Скидка: ${discount}%</p>
+                        <p class="text-gray-500 line-through text-lg">Цена: ${product.price} руб.</p>
+                        <p class="text-red-600 font-bold text-xl">Цена со скидкой: ${Math.round(product.price * (1 - discount / 100))} руб.</p>
+                        <p class="text-green-600 text-sm">Скидка: ${discount}%</p>
                     ` : `
-                        <p>Цена: ${product.price} руб.</p>
+                        <p class="text-lg font-semibold text-gray-900">Цена: ${product.price} руб.</p>
                     `}
-                    ${product.volume ? `<p>Объем: ${product.volume} мл</p>` : ''}
-                    ${product.strength ? `<p>Крепость: ${product.strength}%</p>` : ''}
-                    <p>В наличии: ${product.stock}</p>
-                    <div class="flex items-center space-x-2 mb-2">
-                        <label for="quantity-${product.id}" class="text-sm">Количество:</label>
+                    ${product.volume ? `<p class="text-sm text-gray-600">Объем: ${product.volume} мл</p>` : ''}
+                    ${product.strength ? `<p class="text-sm text-gray-600">Крепость: ${product.strength}%</p>` : ''}
+                    <p class="text-sm text-gray-600 mt-2">В наличии: ${product.stock}</p>
+                    <div class="flex items-center space-x-3 mt-4 self-start">
+                        <label for="quantity-${product.id}" class="text-sm font-medium text-gray-700">Количество:</label>
                         <input type="number" id="quantity-${product.id}" min="1" max="${product.stock}" value="1"
-                               class="border p-1 w-16 text-center">
+                               class="border border-gray-300 p-2 rounded-md w-20 text-center quantity-input focus:outline-none focus:ring-2 focus:ring-blue-500">
                     </div>
-                    <button onclick="addToCart(${product.id})" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">В корзину</button>
+                    <button class="mt-6 bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-md font-semibold transition duration-200 add-to-cart-btn" data-product-id="${product.id}">В корзину</button>
                 `;
                 productsList.appendChild(div);
             }
         }
 
-        async function addToCart(productId) {
-            const quantity = parseInt(document.getElementById(`quantity-${productId}`).value);
-            if (isNaN(quantity) || quantity < 1) {
-                alert('Пожалуйста, введите корректное количество');
-                return;
-            }
+        // Делегирование события клика для кнопок "В корзину" в секции товаров
+        document.getElementById('products-list').addEventListener('click', async (event) => {
+            const target = event.target;
 
-            const response = await fetch(`${apiUrl}/cart`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ product_id: productId, quantity: quantity })
-            });
+            // Проверяем, был ли клик по кнопке с классом add-to-cart-btn
+            if (target.classList.contains('add-to-cart-btn')) {
+                const productId = target.dataset.productId;
+                // Находим родительский div товара
+                const productDiv = target.closest('.bg-white.p-6.rounded-lg.shadow-md');
+                // Находим поле ввода количества внутри этого div
+                const quantityInput = productDiv.querySelector('.quantity-input');
+                const quantity = parseInt(quantityInput.value);
 
-            const result = await response.json();
-            alert(result.message || result.error);
-            if (response.ok) {
-                window.location.reload();
+                console.log(`Debug (Delegation): productId=${productId}, Read quantity=${quantityInput.value}, Parsed quantity=${quantity}`);
+
+                if (isNaN(quantity) || quantity < 1) {
+                    alert('Пожалуйста, введите корректное количество');
+                    return;
+                }
+
+                // Вызываем функцию addToCart (логика добавления в корзину)
+                const response = await fetch(`${apiUrl}/cart`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ product_id: parseInt(productId), quantity: quantity })
+                });
+
+                const result = await response.json();
+                if (response.ok) {
+                    loadCart();
+                     const associatedQuantityInput = document.getElementById(`quantity-${productId}`) || document.getElementById(`rec-quantity-${productId}`);
+                     if(associatedQuantityInput) associatedQuantityInput.value = 1;
+                } else {
+                    alert(result.error || 'Ошибка при добавлении в корзину');
+                }
             }
-        }
+        });
 
         async function loadCart() {
             const response = await fetch(`${apiUrl}/cart`, { method: 'GET', credentials: 'include' });
             const cartItems = await response.json();
+            console.log('Содержимое корзины с сервера:', cartItems);
             const cartList = document.getElementById('cart-list');
             cartList.innerHTML = '';
 
             if (cartItems.length === 0) {
-                cartList.innerHTML = '<p>Корзина пуста</p>';
+                cartList.innerHTML = '<p class="text-gray-600">Корзина пуста</p>';
                 // Скрываем кнопки оформления и очистки, если корзина пуста
                 document.getElementById('checkout-btn').classList.add('hidden');
                 document.getElementById('clear-cart-btn').classList.add('hidden');
@@ -198,15 +232,19 @@
             let total = 0;
             cartItems.forEach(item => {
                 const div = document.createElement('div');
-                div.className = 'border-b py-2';
+                div.className = 'border-b border-gray-200 py-4 flex justify-between items-center last:border-b-0';
 
-                let priceDisplay = `${item.discounted_price} руб.`;
+                let priceDisplay = `<span class="font-medium text-gray-900">${item.discounted_price} руб.</span>`;
                 if (item.discount_percent > 0) {
-                    priceDisplay = `<span class="text-gray-500 line-through">${item.original_price} руб.</span> ${item.discounted_price} руб. (-${item.discount_percent}%)`;
+                    priceDisplay = `<span class="text-gray-500 line-through text-sm">${item.original_price} руб.</span> <span class="font-bold text-red-600">${item.discounted_price} руб.</span> <span class="text-green-600 text-sm">-${item.discount_percent}%</span>`;
                 }
 
                 div.innerHTML = `
-                    <p>${item.name} - ${item.quantity} x ${priceDisplay} = ${(item.quantity * item.price).toFixed(2)} руб.</p>
+                    <div class="flex-1 pr-4">
+                        <p class="font-semibold text-gray-900">${item.name}</p>
+                        <p class="text-sm text-gray-600">${item.quantity} x ${priceDisplay}</p>
+                    </div>
+                    <div class="text-lg font-bold text-gray-900">${(item.quantity * item.price).toFixed(2)} руб.</div>
                 `;
                 cartList.appendChild(div);
                 total += item.quantity * item.price;
@@ -214,8 +252,8 @@
 
             cartTotal = total; // Сохраняем сумму корзины
             const totalDiv = document.createElement('div');
-            totalDiv.className = 'font-bold mt-2';
-            totalDiv.textContent = `Итого: ${total} руб.`;
+            totalDiv.className = 'font-bold text-xl text-gray-900 mt-4 text-right';
+            totalDiv.textContent = `Итого: ${total.toFixed(2)} руб.`;
             cartList.appendChild(totalDiv);
 
             // Обновляем итоговую цену при открытии формы оформления заказа
@@ -229,9 +267,9 @@
 
             const totalPriceDiv = document.getElementById('total-price');
             totalPriceDiv.innerHTML = `
-                <div class="text-gray-600">Сумма товаров: ${cartTotal} руб.</div>
-                <div class="text-gray-600">Стоимость доставки: ${deliveryCost} руб.</div>
-                <div class="text-green-600">Итого к оплате: ${totalWithDelivery} руб.</div>
+                <div class="text-gray-600 text-base">Сумма товаров: <span class="font-semibold">${cartTotal.toFixed(2)} руб.</span></div>
+                <div class="text-gray-600 text-base">Стоимость доставки: <span class="font-semibold">${deliveryCost.toFixed(2)} руб.</span></div>
+                <div class="text-green-700 font-bold text-xl mt-2">Итого к оплате: ${totalWithDelivery.toFixed(2)} руб.</div>
             `;
         }
 
@@ -287,29 +325,67 @@
             recommendationsList.innerHTML = '';
 
             if (recommendations.length === 0) {
-                recommendationsList.innerHTML = '<p>Нет доступных рекомендаций</p>';
+                recommendationsList.innerHTML = '<p class="text-gray-600">Нет доступных рекомендаций</p>';
                 return;
             }
 
             for (const product of recommendations) {
                 const div = document.createElement('div');
-                div.className = 'bg-white p-4 rounded shadow';
+                div.className = 'bg-white p-6 rounded-lg shadow-md flex flex-col';
                 div.innerHTML = `
-                    ${product.image_url ? `<img src="${product.image_url}" alt="${product.name}" class="w-full h-48 object-cover mb-4 rounded">` : ''}
-                    <h3 class="text-lg font-bold">${product.name}</h3>
-                    <p>Категория: ${product.category}</p>
-                    <p>Бренд: ${product.brand}</p>
-                    <p>Цена: ${product.price} руб.</p>
-                    <div class="flex items-center space-x-2 mb-2">
-                        <label for="rec-quantity-${product.product_id}" class="text-sm">Количество:</label>
+                    ${product.image_url ? `<img src="${product.image_url}" alt="${product.name}" class="w-full h-48 object-contain mb-4 rounded-md">` : ''}
+                    <h3 class="text-xl font-semibold text-gray-900 mb-2">${product.name}</h3>
+                    <p class="text-sm text-gray-600">Категория: ${product.category}</p>
+                    <p class="text-sm text-gray-600">Бренд: ${product.brand}</p>
+                    <p class="text-lg font-semibold text-gray-900">Цена: ${product.price} руб.</p>
+                    <div class="flex items-center space-x-3 mt-4 self-start">
+                        <label for="rec-quantity-${product.product_id}" class="text-sm font-medium text-gray-700">Количество:</label>
                         <input type="number" id="rec-quantity-${product.product_id}" min="1" value="1" 
-                               class="border p-1 w-16 text-center">
+                               class="border border-gray-300 p-2 rounded-md w-20 text-center quantity-input focus:outline-none focus:ring-2 focus:ring-blue-500">
                     </div>
-                    <button onclick="addToCart(${product.product_id})" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">В корзину</button>
+                    <button class="mt-6 bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-md font-semibold transition duration-200 add-to-cart-btn" data-product-id="${product.product_id}">В корзину</button>
                 `;
                 recommendationsList.appendChild(div);
             }
         }
+
+        // Делегирование события клика для кнопок "В корзину" в секции рекомендаций
+        document.getElementById('recommendations-list').addEventListener('click', async (event) => {
+            const target = event.target;
+
+            // Проверяем, был ли клик по кнопке с классом add-to-cart-btn
+            if (target.classList.contains('add-to-cart-btn')) {
+                const productId = target.dataset.productId;
+                // Находим родительский div рекомендации
+                const recommendationDiv = target.closest('.bg-white.p-6.rounded-lg.shadow-md');
+                // Находим поле ввода количества внутри этого div
+                const quantityInput = recommendationDiv.querySelector('.quantity-input');
+                const quantity = parseInt(quantityInput.value);
+
+                console.log(`Debug (Delegation - Recs): productId=${productId}, Read quantity=${quantityInput.value}, Parsed quantity=${quantity}`);
+
+                if (isNaN(quantity) || quantity < 1) {
+                    alert('Пожалуйста, введите корректное количество');
+                    return;
+                }
+
+                // Вызываем функцию addToCart (логика добавления в корзину)
+                const response = await fetch(`${apiUrl}/cart`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ product_id: parseInt(productId), quantity: quantity })
+                });
+
+                const result = await response.json();
+                if (response.ok) {
+                    loadCart();
+                     const associatedQuantityInput = document.getElementById(`quantity-${productId}`) || document.getElementById(`rec-quantity-${productId}`);
+                     if(associatedQuantityInput) associatedQuantityInput.value = 1;
+                } else {
+                    alert(result.error || 'Ошибка при добавлении в корзину');
+                }
+            }
+        });
 
         // Initial check
         checkAuth();

@@ -3,34 +3,49 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Профиль пользователя</title>
+    <title>Профиль пользователя - AlcoDasha</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
-        body { font-family: Arial, sans-serif; }
+        .hidden { display: none; }
+        .profile-bg {
+            background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);
+        }
     </style>
 </head>
-<body class="bg-gray-100">
-    <div class="container mx-auto p-4">
+<body class="profile-bg font-sans antialiased flex items-center justify-center min-h-screen py-8 px-4">
+    <div class="container mx-auto p-4 lg:p-8 bg-white/95 backdrop-blur-sm rounded-2xl shadow-2xl w-full max-w-4xl">
         <!-- Header -->
-        <header class="bg-blue-600 text-white p-4 rounded mb-4 flex justify-between items-center">
-            <h1 class="text-2xl font-bold">Профиль пользователя</h1>
-            <a href="/shop" class="bg-white text-blue-600 px-4 py-2 rounded hover:bg-gray-100 transition-colors">
-                Вернуться в магазин
+        <header class="bg-blue-800 text-white p-6 rounded-t-xl mb-8 shadow-xl flex justify-between items-center">
+            <h1 class="text-3xl font-extrabold">Профиль пользователя</h1>
+            <a href="/shop" class="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-lg text-base font-semibold transition duration-300 ease-in-out transform hover:-translate-y-1 hover:shadow-lg inline-flex items-center">
+                <i class="fas fa-arrow-left mr-2"></i>Вернуться в магазин
             </a>
         </header>
 
         <!-- User Info Section -->
-        <div id="user-info" class="bg-white p-4 rounded shadow mb-4">
-            <h2 class="text-xl font-bold mb-2">Информация о профиле</h2>
-            <p><strong>Имя пользователя:</strong> <span id="profile-username"></span></p>
-            <p><strong>Email:</strong> <span id="profile-email"></span></p>
-            <!-- Добавьте другие поля, если необходимо -->
+        <div id="user-info" class="bg-gray-50 p-6 rounded-lg shadow-md mb-8">
+            <h2 class="text-2xl font-bold text-gray-800 mb-6 border-b-2 border-blue-500 pb-3">
+                <i class="fas fa-user-circle mr-2 text-blue-600"></i>Информация о профиле
+            </h2>
+            <div class="space-y-4 text-gray-700">
+                <div class="flex items-center space-x-3 p-3 bg-white rounded-md shadow-sm">
+                    <i class="fas fa-user text-blue-600 text-xl w-6 text-center"></i>
+                    <p><span class="font-bold">Имя пользователя:</span> <span id="profile-username" class="font-semibold text-gray-900"></span></p>
+                </div>
+                <div class="flex items-center space-x-3 p-3 bg-white rounded-md shadow-sm">
+                    <i class="fas fa-envelope text-blue-600 text-xl w-6 text-center"></i>
+                    <p><span class="font-bold">Email:</span> <span id="profile-email" class="font-semibold text-gray-900"></span></p>
+                </div>
+            </div>
         </div>
 
         <!-- Orders Section -->
-        <div id="user-orders" class="bg-white p-4 rounded shadow">
-            <h2 class="text-xl font-bold mb-2">Мои заказы</h2>
-            <div id="orders-list"></div>
+        <div id="user-orders" class="bg-gray-50 p-6 rounded-lg shadow-md">
+            <h2 class="text-2xl font-bold text-gray-800 mb-6 border-b-2 border-blue-500 pb-3">
+                <i class="fas fa-shopping-bag mr-2 text-blue-600"></i>Мои заказы
+            </h2>
+            <div id="orders-list" class="space-y-6"></div>
         </div>
     </div>
 
@@ -48,58 +63,104 @@
                 const userData = await response.json();
                 document.getElementById('profile-username').textContent = userData.username;
                 document.getElementById('profile-email').textContent = userData.email;
-                // Обновите другие поля по необходимости
             } else {
-                // Если не авторизован, перенаправляем на страницу входа или приветствия
-                window.location.href = '/login'; // или '/'
+                window.location.href = '/login';
             }
         }
 
         async function loadUserOrders() {
-             const response = await fetch(`${apiUrl}/orders`, { credentials: 'include' }); // API маршрут для получения заказов пользователя
+            const response = await fetch(`${apiUrl}/orders`, { credentials: 'include' });
             const ordersListDiv = document.getElementById('orders-list');
-            ordersListDiv.innerHTML = ''; // Очистка списка перед загрузкой
+            ordersListDiv.innerHTML = '';
 
             if (!response.ok) {
-                ordersListDiv.textContent = 'Не удалось загрузить историю заказов.';
+                ordersListDiv.innerHTML = `
+                    <div class="text-center p-4 bg-red-50 rounded-lg border border-red-200">
+                        <i class="fas fa-exclamation-circle text-red-600 text-2xl mb-2"></i>
+                        <p class="text-red-600 font-semibold">Не удалось загрузить историю заказов.</p>
+                    </div>`;
                 return;
             }
 
             const orders = await response.json();
 
             if (orders.length === 0) {
-                ordersListDiv.textContent = 'У вас пока нет заказов.';
+                ordersListDiv.innerHTML = `
+                    <div class="text-center p-4 bg-gray-100 rounded-lg border border-gray-200">
+                        <i class="fas fa-shopping-bag text-gray-400 text-2xl mb-2"></i>
+                        <p class="text-gray-600 font-semibold">У вас пока нет заказов.</p>
+                    </div>`;
                 return;
             }
 
             orders.forEach(order => {
                 const orderDiv = document.createElement('div');
-                orderDiv.className = 'border-b py-2';
+                orderDiv.className = 'border border-gray-200 rounded-lg p-6 bg-white shadow-sm hover:shadow-md transition duration-200 ease-in-out';
 
                 const header = document.createElement('div');
-                header.className = 'flex justify-between font-semibold';
+                header.className = 'flex justify-between items-center mb-4 pb-3 border-b border-gray-200';
                 header.innerHTML = `
-                    <span>Заказ #${order.order_id}</span>
-                    <span>${new Date(order.created_at).toLocaleString()}</span>
+                    <div class="flex items-center space-x-2">
+                        <i class="fas fa-receipt text-blue-600 text-lg"></i>
+                        <span class="font-bold text-gray-900 text-lg">Заказ #${order.order_id}</span>
+                    </div>
+                    <span class="text-sm text-gray-600"><i class="far fa-clock mr-1"></i>${new Date(order.created_at).toLocaleString()}</span>
                 `;
-                orderDiv.appendChild(header);
 
-                const statusAndTotal = document.createElement('div');
-                statusAndTotal.className = 'text-sm text-gray-600 mb-1';
-                statusAndTotal.textContent = `Статус: ${order.status} | Итого: ${parseFloat(order.total_price).toFixed(2)} руб.`;
+                 const userInfo = document.createElement('div');
+                 userInfo.className = 'text-sm text-gray-700 mb-2 flex items-center';
+                 userInfo.innerHTML = `<i class="fas fa-user mr-2 text-blue-500"></i>Пользователь: <span class="font-semibold">${order.username}</span> (<span class="font-semibold">${order.email}</span>)`;
+
+                 const deliveryInfo = document.createElement('div');
+                 deliveryInfo.className = 'text-sm text-gray-700 mb-2 flex items-center';
+                 deliveryInfo.innerHTML = `<i class="fas fa-truck mr-2 text-blue-500"></i>Доставка: <span class="font-semibold">${order.delivery_method}</span> (${order.delivery_address}) - <span class="font-semibold text-green-700">${parseFloat(order.delivery_cost).toFixed(2)} руб.</span>`;
+
+                 const paymentInfo = document.createElement('div');
+                 paymentInfo.className = 'text-sm text-gray-700 mb-2 flex items-center';
+                 paymentInfo.innerHTML = `<i class="fas fa-credit-card mr-2 text-blue-500"></i>Оплата: <span class="font-semibold">${order.payment_method}</span>`;
+
+                 const statusAndTotal = document.createElement('div');
+                 statusAndTotal.className = 'flex justify-between items-center mb-4 text-base pt-2 border-t border-gray-200';
+                 statusAndTotal.innerHTML = `
+                     <div class="flex items-center space-x-2">
+                         <i class="fas fa-info-circle text-blue-600 text-lg"></i>
+                         <span>Статус: <span class="font-bold text-blue-700">${order.status}</span></span>
+                     </div>
+                     <div class="flex items-center space-x-2">
+                         <i class="fas fa-coins text-green-600 text-lg"></i>
+                         <span>Итого: <span class="font-bold text-green-700">${parseFloat(order.total_price).toFixed(2)} руб.</span></span>
+                     </div>
+                 `;
+
+                orderDiv.appendChild(header);
+                orderDiv.appendChild(userInfo);
+                orderDiv.appendChild(deliveryInfo);
+                orderDiv.appendChild(paymentInfo);
                 orderDiv.appendChild(statusAndTotal);
 
                 if (order.items && order.items.length > 0) {
                     const itemsList = document.createElement('ul');
-                    itemsList.className = 'list-disc list-inside text-sm';
+                    itemsList.className = 'space-y-2 list-inside';
                     order.items.forEach(item => {
-                         const itemPrice = parseFloat(item.price);
-                         const discountApplied = parseFloat(item.discount_applied || 0);
-                         const finalPricePerItem = (itemPrice - discountApplied);
+                        const itemPrice = parseFloat(item.price);
+                        const discountApplied = parseFloat(item.discount_applied || 0);
+                        const finalPricePerItem = (itemPrice - discountApplied);
 
-                        itemsList.innerHTML += `
-                            <li>${item.product_name} x${item.quantity} @ ${finalPricePerItem.toFixed(2)} руб.</li>
+                        const li = document.createElement('li');
+                        li.className = 'flex justify-between items-center text-sm text-gray-800 bg-gray-100 p-3 rounded-md shadow-sm';
+                        li.innerHTML = `
+                            <div class="flex items-center space-x-2">
+                                <i class="fas fa-wine-bottle text-gray-500"></i>
+                                <span>${item.product_name} x${item.quantity}</span>
+                            </div>
+                            <div class="flex items-center space-x-2">
+                                <span class="text-gray-700 font-semibold">${finalPricePerItem.toFixed(2)} руб.</span>
+                                ${item.discount_applied > 0 ? 
+                                    `<span class="text-green-600 text-xs font-semibold">-${item.discount_applied} руб.</span>` : 
+                                    ''}
+                            </div>
                         `;
+                        itemsList.appendChild(li);
                     });
                     orderDiv.appendChild(itemsList);
                 }

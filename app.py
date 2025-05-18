@@ -360,25 +360,52 @@ def add_to_cart():
     data = request.get_json()
     product_id = data.get('product_id')
     quantity = data.get('quantity', 1)
+    app.logger.info(f'Received add_to_cart request: product_id={product_id}, quantity={quantity}') # Логирование 1
 
     conn = get_db_connection()
     try:
         with conn.cursor(cursor_factory=RealDictCursor) as cursor:
+            # Проверяем наличие товара
             cursor.execute("SELECT id, name, stock FROM products WHERE id = %s", (product_id,))
             product = cursor.fetchone()
             if not product:
+                app.logger.warning(f'Product not found: product_id={product_id}')
                 return jsonify({'error': 'Product not found'}), 404
 
+            # Проверяем, есть ли уже этот товар в корзине
             cursor.execute(
-                "INSERT INTO cart (user_id, product_id, quantity) VALUES (%s, %s, %s) RETURNING id",
-                (session['user_id'], product_id, quantity)
+                "SELECT id, quantity FROM cart WHERE user_id = %s AND product_id = %s",
+                (session['user_id'], product_id)
             )
-            cart_id = cursor.fetchone()['id']
+            existing_item = cursor.fetchone()
+
+            if existing_item:
+                # Если товар уже есть в корзине, обновляем количество
+                new_quantity = existing_item['quantity'] + quantity
+                app.logger.info(f"Updating cart item id={existing_item['id']}: old_quantity={existing_item['quantity']}, new_quantity={new_quantity}") # Логирование 2 (Update)
+                cursor.execute(
+                    "UPDATE cart SET quantity = %s WHERE id = %s",
+                    (new_quantity, existing_item['id'])
+                )
+                cart_id = existing_item['id']
+            else:
+                # Если товара нет в корзине, создаем новую запись
+                app.logger.info(f"Inserting new cart item: user_id={session['user_id']}, product_id={product_id}, quantity={quantity}") # Логирование 2 (Insert)
+                cursor.execute(
+                    "INSERT INTO cart (user_id, product_id, quantity) VALUES (%s, %s, %s) RETURNING id",
+                    (session['user_id'], product_id, quantity)
+                )
+                cart_id = cursor.fetchone()['id']
 
             log_user_activity(session['user_id'], 'add_to_cart', f'Added product_id: {product_id} ({product["name"]})')
 
             conn.commit()
+            app.logger.info(f'Cart updated successfully. Cart item id: {cart_id}')
             return jsonify({'message': 'Added to cart', 'cart_id': cart_id}), 201
+    except Exception as e:
+        conn.rollback()
+        app.logger.error(f"Failed to add to cart: {e}")
+        return jsonify({'error': str(e)}), 500
     finally:
         conn.close()
 

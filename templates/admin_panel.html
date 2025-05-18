@@ -1,45 +1,62 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ru">
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Admin Panel - Alcohol Shop</title>
+    <title>Админ панель - AlcoDasha</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
-        body { font-family: Arial, sans-serif; }
-        .hidden { display: none; }
+        .admin-bg {
+            background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);
+        }
+        .modal-overlay {
+            background-color: rgba(0, 0, 0, 0.7);
+            z-index: 1000;
+        }
+        .modal-container {
+            max-width: 500px;
+            z-index: 1001;
+        }
+        /* Add some subtle hover effect for list items */
+        .list-item-hover:hover {
+            background-color: #f3f4f6; /* Tailwind gray-100 */
+            cursor: pointer;
+        }
     </style>
 </head>
-<body class="bg-gray-100">
-    <div class="container mx-auto p-4">
+<body class="admin-bg font-sans antialiased">
+    <div class="container mx-auto p-4 lg:p-8 bg-white/95 backdrop-blur-sm rounded-2xl shadow-2xl my-10">
         <!-- Header -->
-        <header class="bg-blue-600 text-white p-4 rounded mb-4 flex justify-between items-center">
-            <h1 class="text-2xl font-bold">Admin Panel</h1>
-            <a href="/shop" class="bg-white text-blue-600 px-4 py-2 rounded hover:bg-gray-100 transition-colors">
-                <i class="fas fa-arrow-left mr-2"></i>Назад
+        <header class="bg-blue-800 text-white p-6 rounded-t-xl mb-8 shadow-xl flex justify-between items-center">
+            <h1 class="text-3xl font-extrabold">Админ панель</h1>
+            <a href="/shop" class="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-lg text-base font-semibold transition duration-300 ease-in-out transform hover:-translate-y-1 hover:shadow-lg">
+                <i class="fas fa-arrow-left mr-2"></i>Назад в магазин
             </a>
         </header>
 
         <!-- Блок пользователей -->
-        <div class="bg-white p-4 rounded shadow mb-6">
-            <h2 class="text-lg font-semibold mb-2 text-yellow-600">Управление пользователями</h2>
-            <button onclick="loadAllUsers()" class="bg-yellow-500 text-white px-4 py-2 rounded hover:bg-yellow-600 mb-2">
-                Показать всех пользователей
+        <div class="bg-gray-50 p-6 rounded-lg shadow-md mb-8">
+            <h2 class="text-2xl font-bold text-gray-800 mb-6 border-b-2 border-blue-500 pb-3">Управление пользователями</h2>
+            <button onclick="loadAllUsers()" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-semibold transition duration-300 ease-in-out transform hover:-translate-y-1 hover:shadow-lg mb-4">
+                <i class="fas fa-users mr-2"></i>Показать всех пользователей
             </button>
-            <div id="users-list" class="mt-2"></div>
+            <div id="users-list" class="mt-4 space-y-4"></div>
         </div>
 
         <!-- Блок добавления товара -->
-        <div class="bg-white p-4 rounded shadow mb-6">
-            <h2 class="text-lg font-semibold mb-2 text-green-600">Добавить новый товар</h2>
-            <form id="add-product-form" class="space-y-2 max-w-md">
-                <input type="text" id="product-name" placeholder="Название товара" required class="w-full px-3 py-2 border rounded" />
+        <div class="bg-gray-50 p-6 rounded-lg shadow-md mb-8">
+            <h2 class="text-2xl font-bold text-gray-800 mb-6 border-b-2 border-blue-500 pb-3">Добавить новый товар</h2>
+            <form id="add-product-form" class="space-y-6 max-w-lg mx-auto">
+                <div>
+                    <label for="product-name" class="block text-sm font-medium text-gray-700 mb-1">Название товара</label>
+                    <input type="text" id="product-name" placeholder="Введите название" required class="border border-gray-300 p-3 rounded-lg w-full focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent transition duration-200 ease-in-out" />
+                </div>
 
                 <!-- Категории -->
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1">Категория</label>
-                    <select id="category-id" required class="w-full px-3 py-2 border rounded">
+                    <select id="category-id" required class="border border-gray-300 p-3 rounded-lg w-full bg-white focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent transition duration-200 ease-in-out">
                         <option value="">Выберите категорию</option>
                         <option value="Красное вино">Красное вино</option>
                         <option value="Белое вино">Белое вино</option>
@@ -57,69 +74,86 @@
                 <!-- Бренды -->
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1">Бренд</label>
-                    <div class="flex space-x-2">
-                        <select id="brand-id" required class="flex-1 px-3 py-2 border rounded">
+                    <div class="flex space-x-4">
+                        <select id="brand-id" required class="flex-1 border border-gray-300 p-3 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent transition duration-200 ease-in-out">
                             <option value="">Выберите бренд</option>
                         </select>
-                        <button type="button" onclick="showAddBrandModal()" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
+                        <button type="button" onclick="showAddBrandModal()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-semibold transition duration-300 ease-in-out transform hover:-translate-y-1 hover:shadow-lg">
                             <i class="fas fa-plus"></i>
                         </button>
                     </div>
                 </div>
 
-                <input type="number" id="price" placeholder="Цена" required step="0.01" min="0" class="w-full px-3 py-2 border rounded" />
-                <input type="text" id="volume" placeholder="Объем (например, 750 мл)" required class="w-full px-3 py-2 border rounded" />
-                <input type="number" id="strength" placeholder="Крепость (%)" required step="0.1" min="0" class="w-full px-3 py-2 border rounded" />
-                <input type="number" id="stock" placeholder="Количество на складе" required min="0" class="w-full px-3 py-2 border rounded" />
-                <div class="border-2 border-dashed border-gray-300 rounded p-4 text-center">
+                <div>
+                    <label for="price" class="block text-sm font-medium text-gray-700 mb-1">Цена</label>
+                    <input type="number" id="price" placeholder="0.00" required step="0.01" min="0" class="border border-gray-300 p-3 rounded-lg w-full focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent transition duration-200 ease-in-out" />
+                </div>
+
+                <div>
+                     <label for="volume" class="block text-sm font-medium text-gray-700 mb-1">Объем</label>
+                    <input type="text" id="volume" placeholder="Например, 750 мл" required class="border border-gray-300 p-3 rounded-lg w-full focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent transition duration-200 ease-in-out" />
+                </div>
+
+                <div>
+                    <label for="strength" class="block text-sm font-medium text-gray-700 mb-1">Крепость (%)</label>
+                    <input type="number" id="strength" placeholder="0.0" required step="0.1" min="0" class="border border-gray-300 p-3 rounded-lg w-full focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent transition duration-200 ease-in-out" />
+                </div>
+
+                <div>
+                    <label for="stock" class="block text-sm font-medium text-gray-700 mb-1">Количество на складе</label>
+                    <input type="number" id="stock" placeholder="0" required min="0" class="border border-gray-300 p-3 rounded-lg w-full focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent transition duration-200 ease-in-out" />
+                </div>
+               
+                <div class="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-blue-500 transition duration-200 ease-in-out">
                     <input type="file" id="product-image" accept="image/*" class="hidden" />
-                    <label for="product-image" class="cursor-pointer text-blue-500 hover:text-blue-700">
-                        Нажмите, чтобы загрузить изображение
+                    <label for="product-image" class="cursor-pointer text-blue-600 hover:text-blue-800 font-semibold">
+                         <i class="fas fa-cloud-upload-alt mr-2"></i>Нажмите, чтобы загрузить изображение
                     </label>
-                    <div id="image-preview" class="mt-2 hidden">
-                        <img id="preview-img" src="" alt="Preview" class="max-h-32 mx-auto" />
+                    <div id="image-preview" class="mt-4 hidden">
+                        <img id="preview-img" src="" alt="Preview" class="max-h-40 mx-auto rounded-md shadow">
                     </div>
                 </div>
-                <button type="submit" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">
-                    Добавить товар
+
+                <button type="submit" class="w-full bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg font-semibold transition duration-300 ease-in-out transform hover:-translate-y-1 hover:shadow-lg">
+                    <i class="fas fa-plus-circle mr-2"></i>Добавить товар
                 </button>
             </form>
-            <div id="add-product-message" class="mt-2 text-sm"></div>
+            <div id="add-product-message" class="mt-4 text-sm text-center text-gray-700"></div>
         </div>
 
         <!-- Список товаров -->
-        <div class="bg-white p-4 rounded shadow mb-6">
-            <h2 class="text-lg font-semibold mb-2 text-purple-600">Список товаров</h2>
-            <button onclick="loadProducts()" class="bg-purple-500 text-white px-4 py-2 rounded hover:bg-purple-600 mb-2">
-                Обновить список товаров
+        <div class="bg-gray-50 p-6 rounded-lg shadow-md mb-8">
+            <h2 class="text-2xl font-bold text-gray-800 mb-6 border-b-2 border-blue-500 pb-3">Список товаров</h2>
+            <button onclick="loadProducts()" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-semibold transition duration-300 ease-in-out transform hover:-translate-y-1 hover:shadow-lg mb-4">
+                 <i class="fas fa-sync-alt mr-2"></i>Обновить список товаров
             </button>
-            <div id="products-list" class="mt-2"></div>
+            <div id="products-list" class="mt-4 space-y-4"></div>
         </div>
 
         <!-- Блок заказов -->
-        <div class="bg-white p-4 rounded shadow mb-6">
-            <h2 class="text-lg font-semibold mb-2 text-blue-600">Заказы клиентов</h2>
-            <button onclick="loadOrders()" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 mb-2">
-                Показать все заказы
+        <div class="bg-gray-50 p-6 rounded-lg shadow-md mb-8">
+            <h2 class="text-2xl font-bold text-gray-800 mb-6 border-b-2 border-blue-500 pb-3">Заказы клиентов</h2>
+            <button onclick="loadOrders()" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-semibold transition duration-300 ease-in-out transform hover:-translate-y-1 hover:shadow-lg mb-4">
+                <i class="fas fa-shopping-cart mr-2"></i>Показать все заказы
             </button>
-            <div id="orders-list" class="mt-2 max-h-96 overflow-auto"></div>
+            <div id="orders-list" class="mt-4 space-y-4 max-h-96 overflow-y-auto pr-2"></div>
         </div>
     </div>
 
     <!-- Модальное окно редактирования товара -->
-    <div id="editProductModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden overflow-y-auto h-full w-full">
-        <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+    <div id="editProductModal" class="fixed inset-0 bg-gray-800 bg-opacity-75 modal-overlay flex items-center justify-center p-4 hidden">
+        <div class="relative modal-container bg-white p-6 rounded-lg shadow-xl w-full">
             <div class="mt-3">
-                <h3 class="text-lg font-medium leading-6 text-gray-900 mb-4">Редактировать товар</h3>
-                <form id="editProductForm" class="space-y-4">
+                <h3 class="text-2xl font-bold leading-6 text-gray-900 mb-6 border-b pb-3">Редактировать товар</h3>
+                <form id="editProductForm" class="space-y-6">
                     <input type="hidden" id="edit-product-id">
                     <div>
-                        <label class="block text-sm font-medium text-gray-700">Название</label>
-                        <input type="text" id="edit-product-name" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                        <label for="edit-product-name" class="block text-sm font-medium text-gray-700 mb-1">Название</label>
+                        <input type="text" id="edit-product-name" class="border border-gray-300 p-3 rounded-lg w-full focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent transition duration-200 ease-in-out">
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-gray-700">Категория</label>
-                        <select id="edit-product-category" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                        <label for="edit-product-category" class="block text-sm font-medium text-gray-700 mb-1">Категория</label>
+                        <select id="edit-product-category" class="border border-gray-300 p-3 rounded-lg w-full bg-white focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent transition duration-200 ease-in-out">
                             <option value="Красное вино">Красное вино</option>
                             <option value="Белое вино">Белое вино</option>
                             <option value="Водка">Водка</option>
@@ -133,35 +167,35 @@
                         </select>
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-gray-700">Бренд</label>
-                        <input type="text" id="edit-product-brand" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                        <label for="edit-product-brand" class="block text-sm font-medium text-gray-700 mb-1">Бренд</label>
+                        <input type="text" id="edit-product-brand" class="border border-gray-300 p-3 rounded-lg w-full focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent transition duration-200 ease-in-out">
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-gray-700">Цена</label>
-                        <input type="number" id="edit-product-price" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                        <label for="edit-product-price" class="block text-sm font-medium text-gray-700 mb-1">Цена</label>
+                        <input type="number" id="edit-product-price" class="border border-gray-300 p-3 rounded-lg w-full focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent transition duration-200 ease-in-out">
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-gray-700">Объем (мл)</label>
-                        <input type="number" id="edit-product-volume" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                        <label for="edit-product-volume" class="block text-sm font-medium text-gray-700 mb-1">Объем</label>
+                        <input type="text" id="edit-product-volume" placeholder="Например, 750 мл" class="border border-gray-300 p-3 rounded-lg w-full focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent transition duration-200 ease-in-out">
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-gray-700">Крепость (%)</label>
-                        <input type="number" id="edit-product-strength" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                        <label for="edit-product-strength" class="block text-sm font-medium text-gray-700 mb-1">Крепость (%)</label>
+                        <input type="number" id="edit-product-strength" class="border border-gray-300 p-3 rounded-lg w-full focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent transition duration-200 ease-in-out">
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-gray-700">Количество на складе</label>
-                        <input type="number" id="edit-product-stock" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                        <label for="edit-product-stock" class="block text-sm font-medium text-gray-700 mb-1">Количество на складе</label>
+                        <input type="number" id="edit-product-stock" class="border border-gray-300 p-3 rounded-lg w-full focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent transition duration-200 ease-in-out">
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-gray-700">Изображение товара</label>
+                        <label for="edit-product-image" class="block text-sm font-medium text-gray-700 mb-1">Изображение товара</label>
                         <input type="file" id="edit-product-image" accept="image/*" class="mt-1 block w-full">
-                        <div id="edit-image-preview" class="mt-2 hidden">
-                            <img src="" alt="Preview" class="max-w-xs">
+                        <div id="edit-image-preview" class="mt-4 hidden">
+                            <img src="" alt="Preview" class="max-w-xs mx-auto rounded-md shadow">
                         </div>
                     </div>
-                    <div class="flex justify-end space-x-3">
-                        <button type="button" onclick="closeEditModal()" class="px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400">Отмена</button>
-                        <button type="submit" class="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600">Сохранить</button>
+                    <div class="flex justify-end space-x-4 mt-6">
+                        <button type="button" onclick="closeEditModal()" class="px-6 py-3 bg-gray-300 text-gray-800 rounded-lg hover:bg-gray-400 font-semibold transition duration-200 ease-in-out">Отмена</button>
+                        <button type="submit" class="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-semibold transition duration-200 ease-in-out">Сохранить</button>
                     </div>
                 </form>
             </div>
@@ -169,22 +203,22 @@
     </div>
 
     <!-- Модальное окно добавления бренда -->
-    <div id="addBrandModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden overflow-y-auto h-full w-full">
-        <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+    <div id="addBrandModal" class="fixed inset-0 bg-gray-800 bg-opacity-75 modal-overlay flex items-center justify-center p-4 hidden">
+        <div class="relative modal-container bg-white p-6 rounded-lg shadow-xl w-full">
             <div class="mt-3">
-                <h3 class="text-lg font-medium leading-6 text-gray-900 mb-4">Добавить новый бренд</h3>
-                <form id="add-brand-form" class="space-y-4">
+                <h3 class="text-2xl font-bold leading-6 text-gray-900 mb-6 border-b pb-3">Добавить новый бренд</h3>
+                <form id="add-brand-form" class="space-y-6">
                     <div>
-                        <label class="block text-sm font-medium text-gray-700">Название бренда</label>
-                        <input type="text" id="new-brand-name" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                        <label for="new-brand-name" class="block text-sm font-medium text-gray-700 mb-1">Название бренда</label>
+                        <input type="text" id="new-brand-name" required class="border border-gray-300 p-3 rounded-lg w-full focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent transition duration-200 ease-in-out">
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-gray-700">Описание</label>
-                        <textarea id="new-brand-description" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"></textarea>
+                        <label for="new-brand-description" class="block text-sm font-medium text-gray-700 mb-1">Описание</label>
+                        <textarea id="new-brand-description" class="border border-gray-300 p-3 rounded-lg w-full focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent transition duration-200 ease-in-out"></textarea>
                     </div>
-                    <div class="flex justify-end space-x-3">
-                        <button type="button" onclick="closeAddBrandModal()" class="px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400">Отмена</button>
-                        <button type="submit" class="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600">Добавить</button>
+                    <div class="flex justify-end space-x-4 mt-6">
+                        <button type="button" onclick="closeAddBrandModal()" class="px-6 py-3 bg-gray-300 text-gray-800 rounded-lg hover:bg-gray-400 font-semibold transition duration-200 ease-in-out">Отмена</button>
+                        <button type="submit" class="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-semibold transition duration-200 ease-in-out">Добавить</button>
                     </div>
                 </form>
             </div>
@@ -204,23 +238,29 @@
         async function loadAllUsers() {
             const response = await fetch(`${apiUrl}/admin/users`, { credentials: 'include' });
             if (!response.ok) {
-                alert('Не удалось загрузить пользователей');
+                document.getElementById('users-list').innerHTML = '<p class="text-red-600">Не удалось загрузить пользователей</p>';
                 return;
             }
             const users = await response.json();
             const usersList = document.getElementById('users-list');
             usersList.innerHTML = '';
 
+            if (users.length === 0) {
+                 usersList.innerHTML = '<p class="text-gray-600">Нет зарегистрированных пользователей.</p>';
+                return;
+            }
+
             users.forEach(user => {
                 const div = document.createElement('div');
-                div.className = 'border-b py-1 flex justify-between items-center';
+                div.className = 'border border-gray-200 rounded-md p-4 bg-gray-50 shadow-sm flex justify-between items-center';
 
                 const userInfo = document.createElement('span');
-                userInfo.textContent = `${user.id}: ${user.username} (${user.email}) - ${user.role}`;
+                userInfo.className = 'text-gray-800';
+                userInfo.innerHTML = `<span class="font-semibold">${user.id}</span>: ${user.username} (${user.email}) - <span class="font-medium text-blue-700">${user.role}</span>`;
 
                 const deleteBtn = document.createElement('button');
-                deleteBtn.textContent = 'Удалить';
-                deleteBtn.className = 'bg-red-600 text-white px-2 py-1 rounded hover:bg-red-700';
+                deleteBtn.innerHTML = '<i class="fas fa-trash-alt"></i>';
+                deleteBtn.className = 'bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg text-sm font-semibold transition duration-200 ease-in-out';
                 deleteBtn.onclick = () => deleteUser(user.id);
 
                 div.appendChild(userInfo);
@@ -249,61 +289,168 @@
             }
         }
 
-        // Загрузка всех заказов
-        async function loadOrders() {
-            const response = await fetch(`${apiUrl}/admin/orders`, { credentials: 'include' });
-            const ordersList = document.getElementById('orders-list');
-            ordersList.innerHTML = '';
-
+        // Загрузка всех товаров
+        async function loadProducts() {
+            const response = await fetch(`${apiUrl}/products`, { credentials: 'include' });
             if (!response.ok) {
-                ordersList.textContent = 'Не удалось загрузить заказы';
+                document.getElementById('products-list').innerHTML = '<p class="text-red-600">Не удалось загрузить товары</p>';
+                return;
+            }
+            const products = await response.json();
+            const productsList = document.getElementById('products-list');
+            productsList.innerHTML = '';
+
+            if (products.length === 0) {
+                 productsList.innerHTML = '<p class="text-gray-600">Нет товаров в наличии.</p>';
                 return;
             }
 
+            products.forEach(product => {
+                const div = document.createElement('div');
+                div.className = 'border border-gray-200 rounded-md p-4 bg-gray-50 shadow-sm flex justify-between items-center';
+
+                const productInfo = document.createElement('div');
+                productInfo.className = 'flex-1 pr-4';
+                productInfo.innerHTML = `
+                    <div class="flex items-center space-x-4">
+                        ${product.image_url ? `<img src="${product.image_url}" alt="${product.name}" class="w-16 h-16 object-cover rounded-md shadow">` : ''}
+                        <div>
+                            <h3 class="font-semibold text-gray-900">${product.name}</h3>
+                            <p class="text-sm text-gray-600">Категория: ${product.category_name}</p>
+                            <p class="text-sm text-gray-600">Бренд: ${product.brand_name}</p>
+                            <p class="text-sm text-gray-600">Цена: ${product.price} RUB</p>
+                            <p class="text-sm text-gray-600">В наличии: ${product.stock}</p>
+                        </div>
+                    </div>
+                `;
+
+                const actionsDiv = document.createElement('div');
+                actionsDiv.className = 'flex space-x-2';
+
+                const editBtn = document.createElement('button');
+                editBtn.innerHTML = '<i class="fas fa-edit"></i>';
+                editBtn.className = 'text-blue-600 hover:text-blue-800 px-3 py-2 rounded-lg transition duration-200 ease-in-out';
+                editBtn.onclick = () => editProduct(product.id);
+
+                const deleteBtn = document.createElement('button');
+                deleteBtn.innerHTML = '<i class="fas fa-trash-alt"></i>';
+                deleteBtn.className = 'text-red-600 hover:text-red-800 px-3 py-2 rounded-lg transition duration-200 ease-in-out';
+                deleteBtn.onclick = () => deleteProduct(product.id);
+
+                actionsDiv.appendChild(editBtn);
+                actionsDiv.appendChild(deleteBtn);
+
+                div.appendChild(productInfo);
+                div.appendChild(actionsDiv);
+                productsList.appendChild(div);
+            });
+        }
+
+        // Удаление товара (необходимо реализовать на сервере)
+        async function deleteProduct(productId) {
+             if (!confirm('Вы уверены, что хотите удалить этот товар?')) {
+                return;
+            }
+             // Пока нет серверной реализации, просто выведем в консоль
+            console.log(`Удаление товара с ID: ${productId}`);
+            alert('Функция удаления товара пока не реализована на сервере.');
+             // После реализации на сервере, раскомментируйте код ниже:
+            /*
+            const response = await fetch(`${apiUrl}/admin/products/${productId}`, {
+                method: 'DELETE',
+                credentials: 'include'
+            });
+
+            if (response.ok) {
+                alert('Товар успешно удалён');
+                loadProducts();  // Обновляем список после удаления
+            } else {
+                const err = await response.json();
+                alert('Не удалось удалить товар: ' + (err.error || 'Неизвестная ошибка'));
+            }
+            */
+        }
+
+        // Загрузка заказов
+        async function loadOrders() {
+            const response = await fetch(`${apiUrl}/admin/orders`, { credentials: 'include' });
+            if (!response.ok) {
+                document.getElementById('orders-list').innerHTML = '<p class="text-red-600">Не удалось загрузить заказы</p>';
+                return;
+            }
             const orders = await response.json();
-            console.log('Orders:', orders);
+            const ordersList = document.getElementById('orders-list');
+            ordersList.innerHTML = '';
 
             if (orders.length === 0) {
-                ordersList.textContent = 'Заказы не найдены.';
+                 ordersList.innerHTML = '<p class="text-gray-600">Нет заказов.</p>';
                 return;
             }
 
             orders.forEach(order => {
                 const div = document.createElement('div');
-                div.className = 'border-b py-2';
+                div.className = 'border border-gray-200 rounded-md p-4 bg-gray-50 shadow-sm space-y-2';
 
                 const header = document.createElement('div');
-                header.className = 'flex justify-between font-semibold';
+                 header.className = 'flex justify-between font-bold text-gray-800 border-b pb-2 mb-2';
                 header.innerHTML = `
-                    <span>Order #${order.order_id} by ${order.username || 'Unknown'} (${order.email || 'No email'})</span>
-                    <span>${new Date(order.created_at).toLocaleString()}</span>
+                     <div>Заказ #<span class="font-semibold text-blue-700">${order.order_id}</span></div>
+                     <div class="text-sm font-normal text-gray-600">${new Date(order.created_at).toLocaleString()}</div>
                 `;
+
+                 const userInfo = document.createElement('div');
+                 userInfo.className = 'text-sm text-gray-700 mb-2';
+                 userInfo.innerHTML = `Пользователь: <span class="font-semibold">${order.username}</span> (${order.email})`;
+
+                 const deliveryInfo = document.createElement('div');
+                 deliveryInfo.className = 'text-sm text-gray-700 mb-2';
+                 deliveryInfo.innerHTML = `Доставка: <span class="font-semibold">${order.delivery_method}</span> (${order.delivery_address}) - <span class="font-semibold">${order.delivery_cost} руб.</span>`;
+
+                 const paymentInfo = document.createElement('div');
+                 paymentInfo.className = 'text-sm text-gray-700 mb-2';
+                 paymentInfo.innerHTML = `Оплата: <span class="font-semibold">${order.payment_method}</span>`;
+
+                 const statusAndTotal = document.createElement('div');
+                 statusAndTotal.className = 'text-base font-bold text-gray-900 mt-2';
+                 statusAndTotal.innerHTML = `Статус: <span class="text-blue-700">${order.status}</span> | Итого: ${parseFloat(order.total_price).toFixed(2)} руб.`;
+
                 div.appendChild(header);
-
-                const statusAndTotal = document.createElement('div');
-                statusAndTotal.className = 'text-sm text-gray-600 mb-1';
-
-                const totalRaw = order.total_price;
-                const total = (typeof totalRaw === 'number') ? totalRaw : parseFloat(totalRaw);
-                const totalNum = isNaN(total) ? 0 : total;
-
-                statusAndTotal.textContent = `Status: ${order.status} | Total: $${totalNum.toFixed(2)}`;
-                div.appendChild(statusAndTotal);
+                 div.appendChild(userInfo);
+                 div.appendChild(deliveryInfo);
+                 div.appendChild(paymentInfo);
+                 div.appendChild(statusAndTotal);
 
                 if (order.items && order.items.length > 0) {
                     const itemsList = document.createElement('ul');
-                    itemsList.className = 'list-disc list-inside text-sm';
+                    itemsList.className = 'list-disc list-inside text-sm text-gray-600 mt-2 space-y-1';
                     order.items.forEach(item => {
-                        const li = document.createElement('li');
-                        const price = parseFloat(item.price);
-                        li.textContent = `${item.product_name} x${item.quantity} @ $${(isNaN(price) ? 0 : price).toFixed(2)}`;
-                        itemsList.appendChild(li);
+                         const itemPrice = parseFloat(item.price);
+                         const discountApplied = parseFloat(item.discount_applied || 0);
+                         const finalPricePerItem = (itemPrice - discountApplied);
+
+                        itemsList.innerHTML += `
+                            <li>${item.product_name} x${item.quantity} @ ${finalPricePerItem.toFixed(2)} руб. (${item.discount_applied > 0 ? `скидка: ${item.discount_applied} руб.` : 'без скидки'})</li>
+                        `;
                     });
                     div.appendChild(itemsList);
                 }
 
                 ordersList.appendChild(div);
             });
+        }
+
+        // Модальное окно редактирования товара
+        function showEditModal() {
+            document.getElementById('editProductModal').classList.remove('hidden');
+        }
+
+        function closeEditModal() {
+            document.getElementById('editProductModal').classList.add('hidden');
+            // Очистка формы и сброс превью изображения при закрытии
+            document.getElementById('editProductForm').reset();
+            document.getElementById('edit-image-preview').classList.add('hidden');
+            document.getElementById('edit-image-preview').querySelector('img').src = '';
+            document.getElementById('edit-product-id').value = ''; // Очистка ID товара
         }
 
         // Функция для открытия модального окна редактирования
@@ -315,36 +462,35 @@
                 }
                 const product = await response.json();
 
+                // Заполнение модального окна данными товара
                 document.getElementById('edit-product-id').value = product.id;
                 document.getElementById('edit-product-name').value = product.name;
                 document.getElementById('edit-product-category').value = product.category_name;
                 document.getElementById('edit-product-brand').value = product.brand_name;
-                document.getElementById('edit-product-price').value = product.price;
+                document.getElementById('edit-product-price').value = parseFloat(product.price);
                 document.getElementById('edit-product-volume').value = product.volume;
-                document.getElementById('edit-product-strength').value = product.strength;
-                document.getElementById('edit-product-stock').value = product.stock;
+                document.getElementById('edit-product-strength').value = parseFloat(product.strength);
+                document.getElementById('edit-product-stock').value = parseInt(product.stock);
 
-                // Показываем текущее изображение, если оно есть
+                // Отображение текущего изображения (если есть)
                 const imagePreview = document.getElementById('edit-image-preview');
+                const previewImg = imagePreview.querySelector('img');
                 if (product.image_url) {
+                    previewImg.src = product.image_url;
                     imagePreview.classList.remove('hidden');
-                    imagePreview.querySelector('img').src = product.image_url;
                 } else {
+                    previewImg.src = '';
                     imagePreview.classList.add('hidden');
                 }
 
-                document.getElementById('editProductModal').classList.remove('hidden');
+                showEditModal(); // Открываем модальное окно
+
             } catch (error) {
-                alert('Ошибка: ' + error.message);
+                alert('Ошибка при загрузке данных товара: ' + error.message);
             }
         }
 
-        // Функция для закрытия модального окна редактирования
-        function closeEditModal() {
-            document.getElementById('editProductModal').classList.add('hidden');
-        }
-
-        // Обработчик изменения изображения
+        // Обработчик изменения изображения в модальном окне редактирования
         document.getElementById('edit-product-image').addEventListener('change', function(e) {
             const file = e.target.files[0];
             if (file) {
@@ -359,7 +505,7 @@
         });
 
         // Обработчик отправки формы редактирования
-        document.getElementById('editProductForm').addEventListener('submit', function(e) {
+        document.getElementById('editProductForm').addEventListener('submit', async function(e) {
             e.preventDefault();
             const productId = document.getElementById('edit-product-id').value;
             const formData = new FormData();
@@ -370,8 +516,8 @@
             formData.append('brand', document.getElementById('edit-product-brand').value);
             formData.append('price', document.getElementById('edit-product-price').value);
             formData.append('volume', document.getElementById('edit-product-volume').value);
-            formData.append('strength', document.getElementById('edit-product-strength').value);
-            formData.append('stock', document.getElementById('edit-product-stock').value);
+            formData.append('strength', parseFloat(document.getElementById('edit-product-strength').value));
+            formData.append('stock', parseInt(document.getElementById('edit-product-stock').value));
 
             // Добавляем изображение, если оно было выбрано
             const imageFile = document.getElementById('edit-product-image').files[0];
@@ -382,70 +528,37 @@
             // Отправляем запрос на обновление товара
             fetch(`${apiUrl}/products/${productId}`, {
                 method: 'PUT',
-                body: formData
+                body: formData,
+                credentials: 'include' // Важно для сохранения сессии админа
             })
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
+                    alert('Товар успешно обновлен!');
                     closeEditModal();
                     loadProducts(); // Перезагружаем список товаров
                 } else {
                     alert('Ошибка при обновлении товара: ' + data.error);
                 }
+            })
+            .catch(error => {
+                alert('Сетевая ошибка при обновлении товара: ' + error);
             });
         });
 
-        // Загрузка всех товаров
-        async function loadProducts() {
-            const response = await fetch(`${apiUrl}/products`, { credentials: 'include' });
-            if (!response.ok) {
-                alert('Не удалось загрузить товары');
-                return;
-            }
-            const products = await response.json();
-            const productsList = document.getElementById('products-list');
-            productsList.innerHTML = '';
-
-            products.forEach(product => {
-                const div = document.createElement('div');
-                div.className = 'border-b py-2 flex justify-between items-center';
-
-                const productInfo = document.createElement('div');
-                productInfo.className = 'flex-1';
-                productInfo.innerHTML = `
-                    <div class="flex items-center space-x-4">
-                        ${product.image_url ? `<img src="${product.image_url}" alt="${product.name}" class="w-16 h-16 object-cover rounded">` : ''}
-                        <div>
-                            <h3 class="font-semibold">${product.name}</h3>
-                            <p class="text-sm text-gray-600">Category: ${product.category_name}</p>
-                            <p class="text-sm text-gray-600">Brand: ${product.brand_name}</p>
-                            <p class="text-sm text-gray-600">Price: ${product.price} RUB</p>
-                            <p class="text-sm text-gray-600">Stock: ${product.stock}</p>
-                        </div>
-                    </div>
-                `;
-
-                const editBtn = document.createElement('button');
-                editBtn.innerHTML = '<i class="fas fa-edit"></i>';
-                editBtn.className = 'text-blue-500 hover:text-blue-700 px-2';
-                editBtn.onclick = () => editProduct(product.id);
-
-                div.appendChild(productInfo);
-                div.appendChild(editBtn);
-                productsList.appendChild(div);
-            });
+        // Модальное окно добавления бренда
+        function showAddBrandModal() {
+            document.getElementById('addBrandModal').classList.remove('hidden');
         }
 
-        // Загружаем товары при загрузке страницы
-        loadProducts();
+        function closeAddBrandModal() {
+            document.getElementById('addBrandModal').classList.add('hidden');
+            document.getElementById('add-brand-form').reset(); // Очищаем форму при закрытии
+        }
 
-        // Загрузка брендов при загрузке страницы
+        // Загрузка брендов для выпадающего списка
         async function loadBrands() {
-            const response = await fetch(`${apiUrl}/brands`, { credentials: 'include' });
-            if (!response.ok) {
-                alert('Не удалось загрузить бренды');
-                return;
-            }
+            const response = await fetch(`${apiUrl}/brands`);
             const brands = await response.json();
             const brandSelect = document.getElementById('brand-id');
             brandSelect.innerHTML = '<option value="">Выберите бренд</option>';
@@ -457,21 +570,17 @@
             });
         }
 
-        // Показать модальное окно добавления бренда
-        function showAddBrandModal() {
-            document.getElementById('addBrandModal').classList.remove('hidden');
-        }
-
-        // Закрыть модальное окно добавления бренда
-        function closeAddBrandModal() {
-            document.getElementById('addBrandModal').classList.add('hidden');
-        }
-
-        // Обработчик добавления нового бренда
-        document.getElementById('add-brand-form').addEventListener('submit', async function(e) {
+        // Обработчик отправки формы добавления бренда
+        document.getElementById('add-brand-form').addEventListener('submit', async (e) => {
             e.preventDefault();
-            const name = document.getElementById('new-brand-name').value;
-            const description = document.getElementById('new-brand-description').value;
+
+            const name = document.getElementById('new-brand-name').value.trim();
+            const description = document.getElementById('new-brand-description').value.trim();
+
+            if (!name) {
+                alert('Название бренда не может быть пустым.');
+                return;
+            }
 
             try {
                 const response = await fetch(`${apiUrl}/brands`, {
@@ -482,6 +591,7 @@
                 });
 
                 if (response.ok) {
+                    alert('Бренд успешно добавлен!');
                     closeAddBrandModal();
                     loadBrands(); // Перезагружаем список брендов
                     document.getElementById('add-brand-form').reset();
@@ -500,7 +610,7 @@
 
             const msgDiv = document.getElementById('add-product-message');
             msgDiv.textContent = '';
-            msgDiv.className = 'mt-2 text-sm';
+            msgDiv.className = 'mt-4 text-sm text-center text-gray-700';
 
             try {
                 // Сначала загружаем изображение, если оно есть
@@ -535,6 +645,13 @@
                     stock: parseInt(document.getElementById('stock').value),
                     image_url: imageUrl
                 };
+
+                // Проверка обязательных полей
+                if (!data.name || !data.category_name || isNaN(data.brand_id) || isNaN(data.price) || !data.volume || isNaN(data.strength) || isNaN(data.stock)) {
+                    msgDiv.textContent = 'Пожалуйста, заполните все обязательные поля.';
+                    msgDiv.className = 'mt-2 text-red-600 font-semibold';
+                    return;
+                }
 
                 const response = await fetch(`${apiUrl}/products`, {
                     method: 'POST',
