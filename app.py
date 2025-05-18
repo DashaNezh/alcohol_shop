@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify, session, render_template, send_from_directory
+from flask import Flask, request, jsonify, session, render_template, send_from_directory, redirect, url_for
 from werkzeug.security import generate_password_hash, check_password_hash
 import psycopg2
 from psycopg2.extras import RealDictCursor
@@ -19,6 +19,7 @@ app = Flask(__name__)
 app.secret_key = str(uuid.uuid4())
 CORS(app)
 
+
 # Декоратор для проверки прав администратора
 def admin_required(f):
     @wraps(f)
@@ -26,20 +27,25 @@ def admin_required(f):
         if not session.get('is_admin'):
             return jsonify({'error': 'Forbidden'}), 403
         return f(*args, **kwargs)
+
     return decorated_function
+
 
 # Настройка для загрузки файлов
 UPLOAD_FOLDER = 'static/images'
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
+
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
 
 # Маршрут для получения изображений
 @app.route('/static/uploads/<filename>')
 def uploaded_file(filename):
     return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
+
 
 # Маршрут для загрузки изображения
 @app.route('/api/upload', methods=['POST'])
@@ -49,11 +55,11 @@ def upload_file():
 
     if 'file' not in request.files:
         return jsonify({'error': 'No file part'}), 400
-    
+
     file = request.files['file']
     if file.filename == '':
         return jsonify({'error': 'No selected file'}), 400
-    
+
     if file and allowed_file(file.filename):
         filename = secure_filename(file.filename)
         # Добавляем уникальный префикс к имени файла
@@ -64,8 +70,9 @@ def upload_file():
             'filename': unique_filename,
             'url': f'/static/uploads/{unique_filename}'
         }), 201
-    
+
     return jsonify({'error': 'File type not allowed'}), 400
+
 
 # Функция для создания соединения с базой данных
 def get_db_connection():
@@ -86,7 +93,30 @@ def get_db_connection():
 # Маршрут для рендеринга index.html
 @app.route('/')
 def index():
+    return render_template('welcome.html')
+
+
+@app.route('/login')
+def login_page():
+    return render_template('login.html')
+
+
+@app.route('/register')
+def register_page():
+    return render_template('register.html')
+
+
+@app.route('/shop')
+def shop():
     return render_template('index.html')
+
+
+@app.route('/profile')
+def user_profile():
+    if 'user_id' not in session:
+        return redirect(url_for('login_page')) # Перенаправляем на логин, если не авторизован
+    return render_template('profile.html')
+
 
 @app.route('/admin')
 def admin_panel():
@@ -156,6 +186,7 @@ def register():
     finally:
         conn.close()
 
+
 # Авторизация пользователя
 @app.route('/api/login', methods=['POST'])
 def login():
@@ -172,7 +203,7 @@ def login():
             if not user or not check_password_hash(user['password_hash'], password):
                 return jsonify({'error': 'Invalid credentials'}), 401
 
-            session['user_id'] = user['id']              # <---- Добавить эту строку
+            session['user_id'] = user['id']  # <---- Добавить эту строку
             session['user_role'] = user['role']
             session['is_admin'] = (user['role'] == 'admin')
 
@@ -214,6 +245,7 @@ def get_products():
     finally:
         conn.close()
 
+
 # Получение данных о товаре
 @app.route('/api/products/<int:product_id>', methods=['GET'])
 def get_product(product_id):
@@ -234,6 +266,7 @@ def get_product(product_id):
     finally:
         conn.close()
 
+
 # Получение списка брендов
 @app.route('/api/brands', methods=['GET'])
 def get_brands():
@@ -245,6 +278,7 @@ def get_brands():
             return jsonify(brands), 200
     finally:
         conn.close()
+
 
 # Добавление нового бренда
 @app.route('/api/brands', methods=['POST'])
@@ -272,6 +306,7 @@ def add_brand():
         return jsonify({'error': str(e)}), 500
     finally:
         conn.close()
+
 
 # Обновление маршрута добавления товара
 @app.route('/api/products', methods=['POST'])
@@ -333,9 +368,6 @@ def add_to_cart():
             product = cursor.fetchone()
             if not product:
                 return jsonify({'error': 'Product not found'}), 404
-
-            if product['stock'] < quantity:
-                return jsonify({'error': 'Insufficient stock'}), 400
 
             cursor.execute(
                 "INSERT INTO cart (user_id, product_id, quantity) VALUES (%s, %s, %s) RETURNING id",
@@ -414,36 +446,45 @@ def get_cart():
                         num_free_items = total_quantity // 3
                         total_discount_for_product = num_free_items * original_price_per_item
                         # Рассчитываем эффективную цену за единицу для отображения
-                        total_price_for_product_with_discount = (total_quantity * original_price_per_item) - total_discount_for_product
+                        total_price_for_product_with_discount = (
+                                                                            total_quantity * original_price_per_item) - total_discount_for_product
                         effective_price_per_item = total_price_for_product_with_discount / total_quantity if total_quantity > 0 else original_price_per_item
-                        applied_discount_percent = (total_discount_for_product / (total_quantity * original_price_per_item)) * 100 if (total_quantity * original_price_per_item) > 0 else 0
+                        applied_discount_percent = (total_discount_for_product / (
+                                                                      total_quantity * original_price_per_item)) * 100 if (
+                                                                                                    total_quantity * original_price_per_item) > 0 else 0
                         applied_discount_percent = round(applied_discount_percent, 2)
                     # Добавляем проверку: если это акция '3 по цене 2', не применяем стандартную процентную скидку, если количество меньше 3
                     elif not (promotion_name == '3 пива по цене 2' and product_id == 14) and promo_discount_percent > 0:
-                         # Для обычных процентных скидок
-                        effective_price_per_item = round(original_price_per_item * (1 - promo_discount_percent / 100), 2)
+                        # Для обычных процентных скидок
+                        effective_price_per_item = round(original_price_per_item * (1 - promo_discount_percent / 100),
+                                                         2)
                         applied_discount_percent = promo_discount_percent
-                        total_discount_for_product = (original_price_per_item - effective_price_per_item) * total_quantity
+                        total_discount_for_product = (
+                                                                 original_price_per_item - effective_price_per_item) * total_quantity
 
                 # Добавляем каждую позицию обратно с рассчитанными ценами и скидками
                 for item in items:
-                     processed_cart_items.append({
+                    processed_cart_items.append({
                         'id': item['id'],
                         'product_id': item['product_id'],
                         'name': item['name'],
                         'quantity': item['quantity'],
                         'original_price': original_price_per_item,
-                        'discounted_price': effective_price_per_item, # Используем эффективную цену за единицу
-                        'price': effective_price_per_item, # Используем эффективную цену за единицу для отображения итогов
+                        'discounted_price': effective_price_per_item,  # Используем эффективную цену за единицу
+                        'price': effective_price_per_item,
+                        # Используем эффективную цену за единицу для отображения итогов
                         'discount_percent': applied_discount_percent,
                         'discount_applied_per_item': round((original_price_per_item - effective_price_per_item), 2),
                         'promotion_name': promotion_name
-                     })
-
+                    })
 
             return jsonify(processed_cart_items), 200
+    except Exception as e:
+        app.logger.error(f"Failed to get cart contents: {e}")
+        return jsonify({'error': 'Failed to get cart contents'}), 500
     finally:
         conn.close()
+
 
 # Очистка корзины
 @app.route('/api/cart', methods=['DELETE'])
@@ -464,6 +505,7 @@ def clear_cart():
         return jsonify({'error': 'Failed to clear cart'}), 500
     finally:
         conn.close()
+
 
 @app.route('/api/me', methods=['GET'])
 def me():
@@ -487,6 +529,7 @@ def me():
     finally:
         conn.close()
 
+
 @app.route('/api/admin/users', methods=['GET'])
 def get_all_users():
     if not session.get('is_admin'):
@@ -503,6 +546,7 @@ def get_all_users():
             return jsonify(users)
     finally:
         conn.close()
+
 
 @app.route('/api/admin/users/<int:user_id>', methods=['DELETE'])
 def delete_user(user_id):
@@ -538,6 +582,7 @@ def delete_user(user_id):
     finally:
         conn.close()
 
+
 @app.route('/api/admin/orders', methods=['GET'])
 def get_all_orders():
     if not session.get('is_admin'):
@@ -568,6 +613,42 @@ def get_all_orders():
                 order['items'] = order_items
 
             return jsonify(orders), 200
+    finally:
+        conn.close()
+
+
+# Получение заказов текущего пользователя
+@app.route('/api/orders', methods=['GET'])
+def get_user_orders():
+    if 'user_id' not in session:
+        return jsonify({'error': 'Unauthorized'}), 401
+
+    conn = get_db_connection()
+    try:
+        with conn.cursor(cursor_factory=RealDictCursor) as cursor:
+            cursor.execute("""
+                SELECT o.id as order_id, o.total_price, o.delivery_address,
+                       o.delivery_method, o.delivery_cost, o.payment_method, o.status, o.created_at
+                FROM orders o
+                WHERE o.user_id = %s
+                ORDER BY o.created_at DESC
+            """, (session['user_id'],))
+            orders = cursor.fetchall()
+
+            for order in orders:
+                cursor.execute("""
+                    SELECT oi.product_id, p.name as product_name, oi.quantity, oi.price, oi.discount_applied
+                    FROM order_items oi
+                    JOIN products p ON oi.product_id = p.id
+                    WHERE oi.order_id = %s
+                """, (order['order_id'],))
+                order_items = cursor.fetchall()
+                order['items'] = order_items
+
+            return jsonify(orders), 200
+    except Exception as e:
+        app.logger.error(f"Failed to get user orders: {e}")
+        return jsonify({'error': 'Failed to get user orders'}), 500
     finally:
         conn.close()
 
@@ -659,9 +740,11 @@ def checkout():
             cursor.execute("DELETE FROM cart WHERE user_id = %s", (session['user_id'],))
             conn.commit()
             return jsonify(
-                {'message': 'Заказ оформлен', 'order_id': order_id, 'total_price': str(total_price + delivery_cost)}), 201
+                {'message': 'Заказ оформлен', 'order_id': order_id,
+                 'total_price': str(total_price + delivery_cost)}), 201
     finally:
         conn.close()
+
 
 @app.route('/api/products/<int:product_id>', methods=['PUT'])
 @admin_required
@@ -675,11 +758,11 @@ def update_product(product_id):
         volume = request.form.get('volume')
         strength = request.form.get('strength')
         stock = request.form.get('stock')
-        
+
         # Проверяем наличие всех необходимых полей
         if not all([name, category_name, brand_name, price, volume, strength, stock]):
             return jsonify({'success': False, 'error': 'Все поля должны быть заполнены'})
-        
+
         conn = get_db_connection()
         try:
             with conn.cursor() as cursor:
@@ -687,18 +770,18 @@ def update_product(product_id):
                 cursor.execute('SELECT id FROM products WHERE id = %s', (product_id,))
                 if not cursor.fetchone():
                     return jsonify({'success': False, 'error': 'Товар не найден'})
-                
+
                 # Получаем ID категории и бренда
                 cursor.execute('SELECT id FROM categories WHERE name = %s', (category_name,))
                 category = cursor.fetchone()
                 if not category:
                     return jsonify({'success': False, 'error': 'Категория не найдена'})
-                
+
                 cursor.execute('SELECT id FROM brands WHERE name = %s', (brand_name,))
                 brand = cursor.fetchone()
                 if not brand:
                     return jsonify({'success': False, 'error': 'Бренд не найден'})
-                
+
                 # Обрабатываем изображение, если оно было загружено
                 image_url = None
                 if 'image' in request.files:
@@ -709,7 +792,7 @@ def update_product(product_id):
                         filename = f"{int(time.time())}_{filename}"
                         file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
                         image_url = f"/static/images/{filename}"
-                
+
                 # Обновляем товар в базе данных
                 if image_url:
                     cursor.execute('''
@@ -725,13 +808,14 @@ def update_product(product_id):
                             volume = %s, strength = %s, stock = %s
                         WHERE id = %s
                     ''', (name, category[0], brand[0], price, volume, strength, stock, product_id))
-                
+
                 conn.commit()
                 return jsonify({'success': True})
         finally:
             conn.close()
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)})
+
 
 @app.route('/api/promotions/active')
 def get_active_promotion():
@@ -757,6 +841,7 @@ def get_active_promotion():
     finally:
         conn.close()
 
+
 # Создаем экземпляр системы рекомендаций
 recommender = RecommendationSystem()
 try:
@@ -764,6 +849,7 @@ try:
     recommender.compute_similarities()
 except Exception as e:
     app.logger.error(f"Failed to initialize recommendation system: {e}")
+
 
 @app.route('/api/recommendations', methods=['GET'])
 def get_recommendations():
@@ -789,6 +875,7 @@ def get_recommendations():
         except Exception as e:
             app.logger.error(f"Failed to get popular recommendations: {e}")
             return jsonify([]), 200
+
 
 if __name__ == '__main__':
     app.run(debug=True)

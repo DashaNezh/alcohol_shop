@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Регистрация - AlcoDasha</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { 
+            font-family: Arial, sans-serif;
+            background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);
+            min-height: 100vh;
+        }
+    </style>
+</head>
+<body class="flex items-center justify-center py-8">
+    <div class="bg-white p-8 rounded-lg shadow-xl max-w-md w-full mx-4">
+        <div class="text-center mb-8">
+            <h1 class="text-3xl font-bold text-gray-800 mb-2">Регистрация</h1>
+            <p class="text-gray-600">Создайте новый аккаунт</p>
+        </div>
+        
+        <form id="register-form" class="space-y-4">
+            <div>
+                <label for="register-username" class="block text-sm font-medium text-gray-700">Имя пользователя</label>
+                <input type="text" id="register-username" name="username" required
+                    class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+            </div>
+
+            <div>
+                <label for="register-email" class="block text-sm font-medium text-gray-700">Электронная почта</label>
+                <input type="email" id="register-email" name="email" required
+                    class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+            </div>
+            
+            <div>
+                <label for="register-password" class="block text-sm font-medium text-gray-700">Пароль</label>
+                <input type="password" id="register-password" name="password" required
+                    class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+            </div>
+
+            <div>
+                <label for="register-first-name" class="block text-sm font-medium text-gray-700">Имя</label>
+                <input type="text" id="register-first-name" name="first_name" required
+                    class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+            </div>
+
+            <div>
+                <label for="register-last-name" class="block text-sm font-medium text-gray-700">Фамилия</label>
+                <input type="text" id="register-last-name" name="last_name" required
+                    class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+            </div>
+
+            <div>
+                <label for="register-phone" class="block text-sm font-medium text-gray-700">Телефон</label>
+                <input type="tel" id="register-phone" name="phone" required
+                    class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+            </div>
+
+            <div>
+                <label for="register-address" class="block text-sm font-medium text-gray-700">Адрес</label>
+                <input type="text" id="register-address" name="address" required
+                    class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+            </div>
+
+            <button type="submit" 
+                class="w-full bg-green-600 text-white py-2 px-4 rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2">
+                Зарегистрироваться
+            </button>
+        </form>
+
+        <div class="mt-4 text-center">
+            <a href="/" class="text-sm text-blue-600 hover:text-blue-800">Вернуться на главную</a>
+        </div>
+    </div>
+
+    <script>
+        const apiUrl = 'http://127.0.0.1:5000/api';
+
+        document.getElementById('register-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const formData = {
+                username: document.getElementById('register-username').value,
+                email: document.getElementById('register-email').value,
+                password: document.getElementById('register-password').value,
+                first_name: document.getElementById('register-first-name').value,
+                last_name: document.getElementById('register-last-name').value,
+                phone: document.getElementById('register-phone').value,
+                address: document.getElementById('register-address').value,
+                registration_source: 'web'
+            };
+
+            try {
+                const response = await fetch(`${apiUrl}/register`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(formData)
+                });
+
+                const result = await response.json();
+                
+                if (response.ok) {
+                    alert('Регистрация успешна! Теперь вы можете войти.');
+                    window.location.href = '/login';
+                } else {
+                    alert(result.error || 'Ошибка регистрации');
+                }
+            } catch (error) {
+                alert('Произошла ошибка при попытке регистрации');
+            }
+        });
+    </script>
+</body>
+</html> 

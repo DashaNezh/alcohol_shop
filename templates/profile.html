@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Профиль пользователя</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { font-family: Arial, sans-serif; }
+    </style>
+</head>
+<body class="bg-gray-100">
+    <div class="container mx-auto p-4">
+        <!-- Header -->
+        <header class="bg-blue-600 text-white p-4 rounded mb-4 flex justify-between items-center">
+            <h1 class="text-2xl font-bold">Профиль пользователя</h1>
+            <a href="/shop" class="bg-white text-blue-600 px-4 py-2 rounded hover:bg-gray-100 transition-colors">
+                Вернуться в магазин
+            </a>
+        </header>
+
+        <!-- User Info Section -->
+        <div id="user-info" class="bg-white p-4 rounded shadow mb-4">
+            <h2 class="text-xl font-bold mb-2">Информация о профиле</h2>
+            <p><strong>Имя пользователя:</strong> <span id="profile-username"></span></p>
+            <p><strong>Email:</strong> <span id="profile-email"></span></p>
+            <!-- Добавьте другие поля, если необходимо -->
+        </div>
+
+        <!-- Orders Section -->
+        <div id="user-orders" class="bg-white p-4 rounded shadow">
+            <h2 class="text-xl font-bold mb-2">Мои заказы</h2>
+            <div id="orders-list"></div>
+        </div>
+    </div>
+
+    <script>
+        const apiUrl = 'http://127.0.0.1:5000/api';
+
+        document.addEventListener('DOMContentLoaded', () => {
+            loadUserProfile();
+            loadUserOrders();
+        });
+
+        async function loadUserProfile() {
+            const response = await fetch(`${apiUrl}/me`, { credentials: 'include' });
+            if (response.ok) {
+                const userData = await response.json();
+                document.getElementById('profile-username').textContent = userData.username;
+                document.getElementById('profile-email').textContent = userData.email;
+                // Обновите другие поля по необходимости
+            } else {
+                // Если не авторизован, перенаправляем на страницу входа или приветствия
+                window.location.href = '/login'; // или '/'
+            }
+        }
+
+        async function loadUserOrders() {
+             const response = await fetch(`${apiUrl}/orders`, { credentials: 'include' }); // API маршрут для получения заказов пользователя
+            const ordersListDiv = document.getElementById('orders-list');
+            ordersListDiv.innerHTML = ''; // Очистка списка перед загрузкой
+
+            if (!response.ok) {
+                ordersListDiv.textContent = 'Не удалось загрузить историю заказов.';
+                return;
+            }
+
+            const orders = await response.json();
+
+            if (orders.length === 0) {
+                ordersListDiv.textContent = 'У вас пока нет заказов.';
+                return;
+            }
+
+            orders.forEach(order => {
+                const orderDiv = document.createElement('div');
+                orderDiv.className = 'border-b py-2';
+
+                const header = document.createElement('div');
+                header.className = 'flex justify-between font-semibold';
+                header.innerHTML = `
+                    <span>Заказ #${order.order_id}</span>
+                    <span>${new Date(order.created_at).toLocaleString()}</span>
+                `;
+                orderDiv.appendChild(header);
+
+                const statusAndTotal = document.createElement('div');
+                statusAndTotal.className = 'text-sm text-gray-600 mb-1';
+                statusAndTotal.textContent = `Статус: ${order.status} | Итого: ${parseFloat(order.total_price).toFixed(2)} руб.`;
+                orderDiv.appendChild(statusAndTotal);
+
+                if (order.items && order.items.length > 0) {
+                    const itemsList = document.createElement('ul');
+                    itemsList.className = 'list-disc list-inside text-sm';
+                    order.items.forEach(item => {
+                         const itemPrice = parseFloat(item.price);
+                         const discountApplied = parseFloat(item.discount_applied || 0);
+                         const finalPricePerItem = (itemPrice - discountApplied);
+
+                        itemsList.innerHTML += `
+                            <li>${item.product_name} x${item.quantity} @ ${finalPricePerItem.toFixed(2)} руб.</li>
+                        `;
+                    });
+                    orderDiv.appendChild(itemsList);
+                }
+
+                ordersListDiv.appendChild(orderDiv);
+            });
+        }
+    </script>
+</body>
+</html> 

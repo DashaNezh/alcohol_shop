@@ -23,38 +23,14 @@
             </div>
         </header>
 
-        <!-- Auth Section -->
-        <div id="auth-section" class="mb-4">
-            <!-- Register Form -->
-            <div id="register-form" class="bg-white p-4 rounded shadow mb-4">
-                <h2 class="text-xl font-bold mb-2">Регистрация</h2>
-                <input id="register-username" type="text" placeholder="Имя пользователя" class="border p-2 mb-2 w-full">
-                <input id="register-email" type="email" placeholder="Электронная почта" class="border p-2 mb-2 w-full">
-                <input id="register-password" type="password" placeholder="Пароль" class="border p-2 mb-2 w-full">
-                <input id="register-first-name" type="text" placeholder="Имя" class="border p-2 mb-2 w-full">
-                <input id="register-last-name" type="text" placeholder="Фамилия" class="border p-2 mb-2 w-full">
-                <input id="register-phone" type="text" placeholder="Телефон" class="border p-2 mb-2 w-full">
-                <input id="register-address" type="text" placeholder="Адрес" class="border p-2 mb-2 w-full">
-                <button onclick="register()" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">Зарегистрироваться</button>
-            </div>
-
-            <!-- Login Form -->
-            <div id="login-form" class="bg-white p-4 rounded shadow">
-                <h2 class="text-xl font-bold mb-2">Вход</h2>
-                <input id="login-username" type="text" placeholder="Имя пользователя" class="border p-2 mb-2 w-full">
-                <input id="login-password" type="password" placeholder="Пароль" class="border p-2 mb-2 w-full">
-                <button onclick="login()" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">Войти</button>
-            </div>
-        </div>
-
         <!-- Products Section -->
-        <div id="products-section" class="hidden mb-4">
+        <div id="products-section" class="mb-4">
             <h2 class="text-xl font-bold mb-2">Товары</h2>
             <div id="products-list" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"></div>
         </div>
 
         <!-- Recommendations Section -->
-        <div id="recommendations-section" class="hidden mb-4">
+        <div id="recommendations-section" class="mb-4">
             <h2 class="text-xl font-bold mb-2">Рекомендации для вас</h2>
             <div id="recommendations-list" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"></div>
         </div>
@@ -88,24 +64,19 @@
 
     <script>
         const apiUrl = 'http://127.0.0.1:5000/api';
-        let cartTotal = 0; // Глобальная переменная для хранения суммы корзины
+        let cartTotal = 0;
 
         async function checkAuth() {
-            const response = await fetch(`${apiUrl}/cart`, { method: 'GET', credentials: 'include' });
+            const response = await fetch(`${apiUrl}/me`, { credentials: 'include' });
             const authStatus = document.getElementById('auth-status');
-            const authSection = document.getElementById('auth-section');
-            const productsSection = document.getElementById('products-section');
-            const recommendationsSection = document.getElementById('recommendations-section');
             const cartSection = document.getElementById('cart-section');
             const logoutBtn = document.getElementById('logout-btn');
 
             if (response.ok) {
-                // Проверяем, является ли пользователь админом
-                const meResponse = await fetch(`${apiUrl}/me`, { credentials: 'include' });
-                const meData = await meResponse.json();
-
-                authStatus.innerHTML = 'Вы вошли в систему';
-                if (meData.is_admin) {
+                const userData = await response.json();
+                authStatus.innerHTML = `Привет, ${userData.username}!`;
+                
+                if (userData.is_admin) {
                     const adminBtn = document.createElement('a');
                     adminBtn.href = '/admin';
                     adminBtn.className = 'bg-yellow-500 text-white px-4 py-2 rounded hover:bg-yellow-600 ml-2';
@@ -113,81 +84,37 @@
                     authStatus.appendChild(adminBtn);
                 }
 
-                authSection.classList.add('hidden');
-                productsSection.classList.remove('hidden');
-                recommendationsSection.classList.remove('hidden');
+                const profileLink = document.createElement('a');
+                profileLink.href = '/profile';
+                profileLink.className = 'text-white hover:text-gray-200 ml-4';
+                profileLink.textContent = 'Профиль';
+                authStatus.appendChild(profileLink);
+
                 cartSection.classList.remove('hidden');
                 logoutBtn.classList.remove('hidden');
-                loadProducts();
                 loadCart();
+                loadProducts();
                 loadRecommendations();
             } else {
-                authStatus.textContent = 'Пожалуйста, войдите или зарегистрируйтесь';
-                authSection.classList.remove('hidden');
-                productsSection.classList.add('hidden');
-                recommendationsSection.classList.add('hidden');
+                authStatus.innerHTML = '<a href="/login" class="text-white hover:text-gray-200">Войти</a> или <a href="/register" class="text-white hover:text-gray-200">Зарегистрироваться</a>';
                 cartSection.classList.add('hidden');
                 logoutBtn.classList.add('hidden');
-            }
-        }
-
-        async function register() {
-            const username = document.getElementById('register-username').value;
-            const email = document.getElementById('register-email').value;
-            const password = document.getElementById('register-password').value;
-            const first_name = document.getElementById('register-first-name').value;
-            const last_name = document.getElementById('register-last-name').value;
-            const phone = document.getElementById('register-phone').value;
-            const address = document.getElementById('register-address').value;
-
-            const response = await fetch(`${apiUrl}/register`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    username, email, password, first_name, last_name, phone, address, registration_source: 'web'
-                })
-            });
-
-            const result = await response.json();
-            alert(result.message || result.error);
-            if (response.ok) checkAuth();
-        }
-
-        async function login() {
-            const username = document.getElementById('login-username').value;
-            const password = document.getElementById('login-password').value;
-
-            const response = await fetch(`${apiUrl}/login`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ username, password }),
-                credentials: 'include'  // добавь, если сессии на сервере
-            });
-
-            const result = await response.json();
-            alert(result.message || result.error);
-            if (response.ok) {
-                checkAuth();  // Показываем товары для всех пользователей
-                if (result.role === 'admin') {
-                    // Добавляем кнопку для перехода в админ-панель
-                    const adminBtn = document.createElement('a');
-                    adminBtn.href = '/admin';
-                    adminBtn.className = 'bg-yellow-500 text-white px-4 py-2 rounded hover:bg-yellow-600 ml-2';
-                    adminBtn.textContent = 'Админ-панель';
-                    document.getElementById('auth-status').appendChild(adminBtn);
-                }
             }
         }
 
         async function logout() {
             const response = await fetch(`${apiUrl}/logout`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' }
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include'
             });
 
             const result = await response.json();
-            alert(result.message || result.error);
-            if (response.ok) checkAuth();
+            if (response.ok) {
+                window.location.href = '/';
+            } else {
+                alert(result.error || 'Ошибка при выходе');
+            }
         }
 
         async function loadProducts() {
@@ -221,7 +148,7 @@
                     <p>В наличии: ${product.stock}</p>
                     <div class="flex items-center space-x-2 mb-2">
                         <label for="quantity-${product.id}" class="text-sm">Количество:</label>
-                        <input type="number" id="quantity-${product.id}" min="1" max="${product.stock}" value="1" 
+                        <input type="number" id="quantity-${product.id}" min="1" max="${product.stock}" value="1"
                                class="border p-1 w-16 text-center">
                     </div>
                     <button onclick="addToCart(${product.id})" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">В корзину</button>
@@ -245,7 +172,9 @@
 
             const result = await response.json();
             alert(result.message || result.error);
-            if (response.ok) loadCart();
+            if (response.ok) {
+                window.location.reload();
+            }
         }
 
         async function loadCart() {
@@ -270,14 +199,14 @@
             cartItems.forEach(item => {
                 const div = document.createElement('div');
                 div.className = 'border-b py-2';
-                
+
                 let priceDisplay = `${item.discounted_price} руб.`;
                 if (item.discount_percent > 0) {
                     priceDisplay = `<span class="text-gray-500 line-through">${item.original_price} руб.</span> ${item.discounted_price} руб. (-${item.discount_percent}%)`;
                 }
 
                 div.innerHTML = `
-                    <p>${item.name} - ${item.quantity} x ${priceDisplay} = ${item.quantity * item.price} руб.</p>
+                    <p>${item.name} - ${item.quantity} x ${priceDisplay} = ${(item.quantity * item.price).toFixed(2)} руб.</p>
                 `;
                 cartList.appendChild(div);
                 total += item.quantity * item.price;

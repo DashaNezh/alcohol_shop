@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Вход - AlcoDasha</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { 
+            font-family: Arial, sans-serif;
+            background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);
+            min-height: 100vh;
+        }
+    </style>
+</head>
+<body class="flex items-center justify-center">
+    <div class="bg-white p-8 rounded-lg shadow-xl max-w-md w-full mx-4">
+        <div class="text-center mb-8">
+            <h1 class="text-3xl font-bold text-gray-800 mb-2">Вход в систему</h1>
+            <p class="text-gray-600">Войдите в свой аккаунт</p>
+        </div>
+        
+        <form id="login-form" class="space-y-4">
+            <div>
+                <label for="login-username" class="block text-sm font-medium text-gray-700">Имя пользователя</label>
+                <input type="text" id="login-username" name="username" required
+                    class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+            </div>
+            
+            <div>
+                <label for="login-password" class="block text-sm font-medium text-gray-700">Пароль</label>
+                <input type="password" id="login-password" name="password" required
+                    class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+            </div>
+
+            <button type="submit" 
+                class="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+                Войти
+            </button>
+        </form>
+
+        <div class="mt-4 text-center">
+            <a href="/" class="text-sm text-blue-600 hover:text-blue-800">Вернуться на главную</a>
+        </div>
+    </div>
+
+    <script>
+        const apiUrl = 'http://127.0.0.1:5000/api';
+
+        document.getElementById('login-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const username = document.getElementById('login-username').value;
+            const password = document.getElementById('login-password').value;
+
+            try {
+                const response = await fetch(`${apiUrl}/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password }),
+                    credentials: 'include'
+                });
+
+                const result = await response.json();
+                
+                if (response.ok) {
+                    window.location.href = '/shop';
+                } else {
+                    alert(result.error || 'Ошибка входа');
+                }
+            } catch (error) {
+                alert('Произошла ошибка при попытке входа');
+            }
+        });
+    </script>
+</body>
+</html> 
