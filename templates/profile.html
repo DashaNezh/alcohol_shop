@@ -40,6 +40,55 @@
             </div>
         </div>
 
+        <!-- Cart Section -->
+        <div id="cart-section" class="mb-10 bg-gray-50 p-6 rounded-lg shadow-md">
+            <h2 class="text-2xl font-bold text-gray-800 mb-6 border-b-2 border-blue-500 pb-3">
+                <i class="fas fa-shopping-cart mr-2 text-blue-600"></i>Корзина
+            </h2>
+            <div id="cart-list" class="bg-white p-6 rounded-lg shadow-md"></div>
+            <div class="mt-8 flex justify-end space-x-4">
+                <button id="clear-cart-btn" class="bg-red-600 hover:bg-red-700 text-white px-6 py-3 rounded-lg font-semibold transition duration-300 ease-in-out transform hover:-translate-y-1 hover:shadow-lg">
+                    <i class="fas fa-trash-alt mr-2"></i>Очистить корзину
+                </button>
+                <button id="checkout-btn" class="bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg font-semibold transition duration-300 ease-in-out transform hover:-translate-y-1 hover:shadow-lg">
+                    <i class="fas fa-credit-card mr-2"></i>Оформить заказ
+                </button>
+            </div>
+        </div>
+
+        <!-- Checkout Form -->
+        <div id="checkout-form" class="hidden bg-gray-50 p-6 rounded-lg shadow-md mb-10">
+            <h2 class="text-2xl font-bold text-gray-800 mb-6 border-b-2 border-blue-500 pb-3">
+                <i class="fas fa-truck mr-2 text-blue-600"></i>Оформление заказа
+            </h2>
+            <div class="space-y-6">
+                <div>
+                    <label for="delivery-address" class="block text-sm font-medium text-gray-700 mb-1">Адрес доставки</label>
+                    <input id="delivery-address" type="text" placeholder="Введите адрес" class="border border-gray-300 p-3 rounded-lg w-full focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent transition duration-200 ease-in-out">
+                </div>
+                <div>
+                    <label for="delivery-method" class="block text-sm font-medium text-gray-700 mb-1">Способ доставки</label>
+                    <select id="delivery-method" class="border border-gray-300 p-3 rounded-lg w-full bg-white focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent transition duration-200 ease-in-out" onchange="updateTotalPrice()">
+                        <option value="courier">Курьер (300 руб.)</option>
+                        <option value="pickup">Самовывоз (бесплатно)</option>
+                        <option value="post">Почта (бесплатно)</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="payment-method" class="block text-sm font-medium text-gray-700 mb-1">Способ оплаты</label>
+                    <select id="payment-method" class="border border-gray-300 p-3 rounded-lg w-full bg-white focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent transition duration-200 ease-in-out">
+                        <option value="card">Карта</option>
+                        <option value="cash">Наличные</option>
+                        <option value="online">Онлайн</option>
+                    </select>
+                </div>
+            </div>
+            <div id="total-price" class="text-2xl font-bold text-gray-900 mt-8 text-right"></div>
+            <button onclick="checkout()" class="bg-blue-600 hover:bg-blue-700 text-white px-8 py-4 rounded-lg font-bold transition duration-300 ease-in-out mt-8 w-full text-center">
+                <i class="fas fa-cash-register mr-2"></i>Подтвердить заказ
+            </button>
+        </div>
+
         <!-- Orders Section -->
         <div id="user-orders" class="bg-gray-50 p-6 rounded-lg shadow-md">
             <h2 class="text-2xl font-bold text-gray-800 mb-6 border-b-2 border-blue-500 pb-3">
@@ -51,10 +100,12 @@
 
     <script>
         const apiUrl = 'http://127.0.0.1:5000/api';
+        let cartTotal = 0; // Add cartTotal variable
 
         document.addEventListener('DOMContentLoaded', () => {
             loadUserProfile();
             loadUserOrders();
+            loadCart(); // Load cart on profile page
         });
 
         async function loadUserProfile() {
@@ -168,6 +219,149 @@
                 ordersListDiv.appendChild(orderDiv);
             });
         }
+
+        // Add loadCart() function
+        async function loadCart() {
+            const response = await fetch(`${apiUrl}/cart`, { method: 'GET', credentials: 'include' });
+            const cartItems = await response.json();
+            console.log('Содержимое корзины с сервера:', cartItems);
+            const cartList = document.getElementById('cart-list');
+            cartList.innerHTML = '';
+
+            const checkoutBtn = document.getElementById('checkout-btn');
+            const clearCartBtn = document.getElementById('clear-cart-btn');
+
+            if (cartItems.length === 0) {
+                cartList.innerHTML = '<p class="text-gray-600">Корзина пуста</p>';
+                checkoutBtn.classList.add('hidden');
+                clearCartBtn.classList.add('hidden');
+                return;
+            }
+
+            checkoutBtn.classList.remove('hidden');
+            clearCartBtn.classList.remove('hidden');
+
+            let total = 0;
+            cartItems.forEach(item => {
+                const div = document.createElement('div');
+                div.className = 'border-b border-gray-200 py-4 flex justify-between items-center last:border-b-0';
+
+                let priceDisplay = `<span class="font-medium text-gray-900">${item.discounted_price} руб.</span>`;
+                if (item.discount_percent > 0) {
+                    priceDisplay = `<span class="text-gray-500 line-through text-sm">${item.original_price} руб.</span> <span class="font-bold text-red-600">${item.discounted_price} руб.</span> <span class="text-green-600 text-sm">-${item.discount_percent}%</span>`;
+                }
+
+                div.innerHTML = `
+                    <div class="flex-1 pr-4">
+                        <p class="font-semibold text-gray-900">${item.name}</p>
+                        <p class="text-sm text-gray-600">${item.quantity} x ${priceDisplay}</p>
+                    </div>
+                    <div class="text-lg font-bold text-gray-900">${(item.quantity * item.discounted_price).toFixed(2)} руб.</div> <!-- Use discounted_price for item total -->
+                `;
+                cartList.appendChild(div);
+                total += item.quantity * item.discounted_price; // Use discounted_price for total
+            });
+
+            cartTotal = total; // Save cart total
+            const totalDiv = document.createElement('div');
+            totalDiv.className = 'font-bold text-xl text-gray-900 mt-4 text-right';
+            totalDiv.textContent = `Итого: ${total.toFixed(2)} руб.`;
+            cartList.appendChild(totalDiv);
+
+            updateTotalPrice(); // Update total price when cart is loaded
+        }
+
+        // Add updateTotalPrice() function
+        function updateTotalPrice() {
+            const deliveryMethodSelect = document.getElementById('delivery-method');
+            const deliveryMethod = deliveryMethodSelect ? deliveryMethodSelect.value : 'pickup'; // Default to pickup if select not found yet
+            const deliveryCost = deliveryMethod === 'courier' ? 300 : 0;
+            const totalWithDelivery = cartTotal + deliveryCost;
+
+            const totalPriceDiv = document.getElementById('total-price');
+             if(totalPriceDiv) { // Check if total-price div exists
+                totalPriceDiv.innerHTML = `
+                    <div class="text-gray-600 text-base">Сумма товаров: <span class="font-semibold">${cartTotal.toFixed(2)} руб.</span></div>
+                    <div class="text-gray-600 text-base">Стоимость доставки: <span class="font-semibold">${deliveryCost.toFixed(2)} руб.</span></div>
+                    <div class="text-green-700 font-bold text-xl mt-2">Итого к оплате: ${totalWithDelivery.toFixed(2)} руб.</div>
+                `;
+            }
+        }
+
+        // Add checkout() function
+        async function checkout() {
+             const deliveryAddressInput = document.getElementById('delivery-address');
+             const deliveryMethodSelect = document.getElementById('delivery-method');
+             const paymentMethodSelect = document.getElementById('payment-method');
+
+             // Basic validation
+             if (!deliveryAddressInput || !deliveryAddressInput.value.trim()) {
+                 alert('Пожалуйста, введите адрес доставки.');
+                 return;
+             }
+
+            const delivery_address = deliveryAddressInput.value.trim();
+            const delivery_method = deliveryMethodSelect.value;
+            const payment_method = paymentMethodSelect.value;
+            const total_price = cartTotal + (delivery_method === 'courier' ? 300 : 0);
+
+            try {
+                const response = await fetch(`${apiUrl}/checkout`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        delivery_address,
+                        delivery_method,
+                        payment_method,
+                        total_price
+                    }),
+                    credentials: 'include'
+                });
+
+                const result = await response.json();
+                alert(result.message || result.error);
+                if (response.ok) {
+                    const checkoutForm = document.getElementById('checkout-form');
+                    if(checkoutForm) checkoutForm.classList.add('hidden');
+                    loadCart(); // Reload cart after successful checkout
+                    loadUserOrders(); // Reload orders after successful checkout
+                }
+            } catch (error) {
+                alert('Произошла ошибка при оформлении заказа: ' + error.message);
+            }
+        }
+
+        // Add clearCart() function
+        async function clearCart() {
+             if (!confirm('Вы уверены, что хотите очистить корзину?')) {
+                 return;
+             }
+            try {
+                const response = await fetch(`${apiUrl}/cart`, {
+                    method: 'DELETE',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include'
+                });
+
+                const result = await response.json();
+                alert(result.message || result.error);
+                if (response.ok) {
+                    loadCart(); // Reload cart after clearing
+                }
+            } catch (error) {
+                alert('Произошла ошибка при очистке корзины: ' + error.message);
+            }
+        }
+
+        // Add event listeners for checkout-btn and clear-cart-btn
+        document.getElementById('checkout-btn').addEventListener('click', () => {
+            const checkoutForm = document.getElementById('checkout-form');
+            if(checkoutForm) checkoutForm.classList.remove('hidden');
+            updateTotalPrice();
+        });
+
+        document.getElementById('clear-cart-btn').addEventListener('click', clearCart);
+
     </script>
 </body>
 </html> 

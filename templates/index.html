@@ -36,53 +36,19 @@
         </div>
 
         <!-- Cart Section -->
-        <div id="cart-section" class="hidden mb-10">
-            <h2 class="text-2xl font-bold text-gray-800 mb-6 border-b-2 border-blue-500 pb-3">Корзина</h2>
-            <div id="cart-list" class="bg-white p-6 rounded-lg shadow-md"></div>
-            <div class="mt-8 flex justify-end space-x-4">
-                <button id="clear-cart-btn" class="bg-red-700 hover:bg-red-800 text-white px-6 py-3 rounded-lg font-semibold transition duration-300 ease-in-out">Очистить корзину</button>
-                <button id="checkout-btn" class="bg-green-700 hover:bg-green-800 text-white px-6 py-3 rounded-lg font-semibold transition duration-300 ease-in-out">Оформить заказ</button>
-            </div>
-        </div>
+        <!-- Remove Cart Section HTML -->
 
         <!-- Checkout Form -->
-        <div id="checkout-form" class="hidden bg-white p-6 rounded-lg shadow-md mb-10">
-            <h2 class="text-2xl font-bold text-gray-800 mb-6 border-b-2 border-blue-500 pb-3">Оформление заказа</h2>
-            <div class="space-y-6">
-                <div>
-                    <label for="delivery-address" class="block text-sm font-medium text-gray-700 mb-1">Адрес доставки</label>
-                    <input id="delivery-address" type="text" placeholder="Введите адрес" class="border border-gray-300 p-3 rounded-md w-full focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent transition duration-200 ease-in-out">
-                </div>
-                <div>
-                    <label for="delivery-method" class="block text-sm font-medium text-gray-700 mb-1">Способ доставки</label>
-                    <select id="delivery-method" class="border border-gray-300 p-3 rounded-md w-full bg-white focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent transition duration-200 ease-in-out" onchange="updateTotalPrice()">
-                        <option value="courier">Курьер (300 руб.)</option>
-                        <option value="pickup">Самовывоз (бесплатно)</option>
-                        <option value="post">Почта (бесплатно)</option>
-                    </select>
-                </div>
-                <div>
-                    <label for="payment-method" class="block text-sm font-medium text-gray-700 mb-1">Способ оплаты</label>
-                    <select id="payment-method" class="border border-gray-300 p-3 rounded-md w-full bg-white focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent transition duration-200 ease-in-out">
-                        <option value="card">Карта</option>
-                        <option value="cash">Наличные</option>
-                        <option value="online">Онлайн</option>
-                    </select>
-                </div>
-            </div>
-            <div id="total-price" class="text-2xl font-bold text-gray-900 mt-8 text-right"></div>
-            <button onclick="checkout()" class="bg-blue-600 hover:bg-blue-700 text-white px-8 py-4 rounded-lg font-bold transition duration-300 ease-in-out mt-8 w-full text-center">Подтвердить заказ</button>
-        </div>
+        <!-- Remove Checkout Form HTML -->
     </div>
 
     <script>
         const apiUrl = 'http://127.0.0.1:5000/api';
-        let cartTotal = 0;
+        // Remove cartTotal variable
 
         async function checkAuth() {
             const response = await fetch(`${apiUrl}/me`, { credentials: 'include' });
             const authStatus = document.getElementById('auth-status');
-            const cartSection = document.getElementById('cart-section');
             const logoutBtn = document.getElementById('logout-btn');
 
             if (response.ok) {
@@ -103,16 +69,13 @@
                 profileLink.innerHTML = '<i class="fas fa-user-circle mr-2"></i>Профиль';
                 authStatus.appendChild(profileLink);
 
-                cartSection.classList.remove('hidden');
                 logoutBtn.classList.remove('hidden');
                 logoutBtn.className = 'text-white hover:text-gray-200 ml-4 inline-flex items-center';
                 logoutBtn.innerHTML = '<i class="fas fa-sign-out-alt mr-2"></i>Выйти';
-                loadCart();
                 loadProducts();
                 loadRecommendations();
             } else {
                 authStatus.innerHTML = '<a href="/login" class="text-white hover:text-gray-200">Войти</a> или <a href="/register" class="text-white hover:text-gray-200">Зарегистрироваться</a>';
-                cartSection.classList.add('hidden');
                 logoutBtn.classList.add('hidden');
             }
         }
@@ -201,7 +164,6 @@
 
                 const result = await response.json();
                 if (response.ok) {
-                    loadCart();
                      const associatedQuantityInput = document.getElementById(`quantity-${productId}`) || document.getElementById(`rec-quantity-${productId}`);
                      if(associatedQuantityInput) associatedQuantityInput.value = 1;
                 } else {
@@ -209,114 +171,6 @@
                 }
             }
         });
-
-        async function loadCart() {
-            const response = await fetch(`${apiUrl}/cart`, { method: 'GET', credentials: 'include' });
-            const cartItems = await response.json();
-            console.log('Содержимое корзины с сервера:', cartItems);
-            const cartList = document.getElementById('cart-list');
-            cartList.innerHTML = '';
-
-            if (cartItems.length === 0) {
-                cartList.innerHTML = '<p class="text-gray-600">Корзина пуста</p>';
-                // Скрываем кнопки оформления и очистки, если корзина пуста
-                document.getElementById('checkout-btn').classList.add('hidden');
-                document.getElementById('clear-cart-btn').classList.add('hidden');
-                return;
-            }
-
-            // Показываем кнопки оформления и очистки, если в корзине есть товары
-            document.getElementById('checkout-btn').classList.remove('hidden');
-            document.getElementById('clear-cart-btn').classList.remove('hidden');
-
-            let total = 0;
-            cartItems.forEach(item => {
-                const div = document.createElement('div');
-                div.className = 'border-b border-gray-200 py-4 flex justify-between items-center last:border-b-0';
-
-                let priceDisplay = `<span class="font-medium text-gray-900">${item.discounted_price} руб.</span>`;
-                if (item.discount_percent > 0) {
-                    priceDisplay = `<span class="text-gray-500 line-through text-sm">${item.original_price} руб.</span> <span class="font-bold text-red-600">${item.discounted_price} руб.</span> <span class="text-green-600 text-sm">-${item.discount_percent}%</span>`;
-                }
-
-                div.innerHTML = `
-                    <div class="flex-1 pr-4">
-                        <p class="font-semibold text-gray-900">${item.name}</p>
-                        <p class="text-sm text-gray-600">${item.quantity} x ${priceDisplay}</p>
-                    </div>
-                    <div class="text-lg font-bold text-gray-900">${(item.quantity * item.price).toFixed(2)} руб.</div>
-                `;
-                cartList.appendChild(div);
-                total += item.quantity * item.price;
-            });
-
-            cartTotal = total; // Сохраняем сумму корзины
-            const totalDiv = document.createElement('div');
-            totalDiv.className = 'font-bold text-xl text-gray-900 mt-4 text-right';
-            totalDiv.textContent = `Итого: ${total.toFixed(2)} руб.`;
-            cartList.appendChild(totalDiv);
-
-            // Обновляем итоговую цену при открытии формы оформления заказа
-            updateTotalPrice();
-        }
-
-        function updateTotalPrice() {
-            const deliveryMethod = document.getElementById('delivery-method').value;
-            const deliveryCost = deliveryMethod === 'courier' ? 300 : 0;
-            const totalWithDelivery = cartTotal + deliveryCost;
-
-            const totalPriceDiv = document.getElementById('total-price');
-            totalPriceDiv.innerHTML = `
-                <div class="text-gray-600 text-base">Сумма товаров: <span class="font-semibold">${cartTotal.toFixed(2)} руб.</span></div>
-                <div class="text-gray-600 text-base">Стоимость доставки: <span class="font-semibold">${deliveryCost.toFixed(2)} руб.</span></div>
-                <div class="text-green-700 font-bold text-xl mt-2">Итого к оплате: ${totalWithDelivery.toFixed(2)} руб.</div>
-            `;
-        }
-
-        document.getElementById('checkout-btn').addEventListener('click', () => {
-            document.getElementById('checkout-form').classList.remove('hidden');
-            updateTotalPrice(); // Обновляем цену при открытии формы
-        });
-
-        async function checkout() {
-            const delivery_address = document.getElementById('delivery-address').value;
-            const delivery_method = document.getElementById('delivery-method').value;
-            const payment_method = document.getElementById('payment-method').value;
-
-            const response = await fetch(`${apiUrl}/checkout`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    delivery_address,
-                    delivery_method,
-                    payment_method,
-                    total_price: cartTotal + (delivery_method === 'courier' ? 300 : 0)
-                })
-            });
-
-            const result = await response.json();
-            alert(result.message || result.error);
-            if (response.ok) {
-                document.getElementById('checkout-form').classList.add('hidden');
-                loadCart();
-            }
-        }
-
-        async function clearCart() {
-            const response = await fetch(`${apiUrl}/cart`, {
-                method: 'DELETE',
-                headers: { 'Content-Type': 'application/json' }
-            });
-
-            const result = await response.json();
-            alert(result.message || result.error);
-            if (response.ok) {
-                loadCart(); // Перезагружаем корзину после очистки
-            }
-        }
-
-        document.getElementById('logout-btn').addEventListener('click', logout);
-        document.getElementById('clear-cart-btn').addEventListener('click', clearCart);
 
         async function loadRecommendations() {
             const response = await fetch(`${apiUrl}/recommendations`, { credentials: 'include' });
@@ -378,7 +232,6 @@
 
                 const result = await response.json();
                 if (response.ok) {
-                    loadCart();
                      const associatedQuantityInput = document.getElementById(`quantity-${productId}`) || document.getElementById(`rec-quantity-${productId}`);
                      if(associatedQuantityInput) associatedQuantityInput.value = 1;
                 } else {
