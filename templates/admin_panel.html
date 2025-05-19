@@ -17,6 +17,8 @@
         .modal-container {
             max-width: 500px;
             z-index: 1001;
+            max-height: 90vh;
+            overflow-y: auto;
         }
         /* Add some subtle hover effect for list items */
         .list-item-hover:hover {
@@ -138,6 +140,12 @@
             </button>
             <div id="orders-list" class="mt-4 space-y-4 max-h-96 overflow-y-auto pr-2"></div>
         </div>
+
+        <!-- Блок статистики заказов пользователей -->
+        <div class="bg-gray-50 p-6 rounded-lg shadow-md mb-8">
+            <h2 class="text-2xl font-bold text-gray-800 mb-6 border-b-2 border-blue-500 pb-3">Статистика заказов пользователей</h2>
+            <div id="user-order-stats" class="mt-4 space-y-4"></div>
+        </div>
     </div>
 
     <!-- Модальное окно редактирования товара -->
@@ -228,10 +236,26 @@
     <script>
         const apiUrl = 'http://127.0.0.1:5000/api';
 
+        // Функция для форматирования времени в Пермское время (UTC+5)
+        function formatPermTime(dateString) {
+            const date = new Date(dateString);
+            // Получаем UTC-время в миллисекундах
+            let utc = date.getTime() + (date.getTimezoneOffset() * 60000);
+            // Прибавляем 5 часов (UTC+5)
+            const permTime = new Date(utc + 5 * 60 * 60 * 1000);
+            const day = String(permTime.getUTCDate()).padStart(2, '0');
+            const month = String(permTime.getUTCMonth() + 1).padStart(2, '0');
+            const year = permTime.getUTCFullYear();
+            const hours = String(permTime.getUTCHours()).padStart(2, '0');
+            const minutes = String(permTime.getUTCMinutes()).padStart(2, '0');
+            return `${day}.${month}.${year} ${hours}:${minutes}`;
+        }
+
         document.addEventListener('DOMContentLoaded', function() {
             loadBrands();
             loadAllUsers();
             loadProducts();
+            loadUserOrderStats();
         });
 
         // Загрузка всех пользователей
@@ -346,47 +370,55 @@
             });
         }
 
-        // Удаление товара (необходимо реализовать на сервере)
+        // Удаление товара
         async function deleteProduct(productId) {
-             if (!confirm('Вы уверены, что хотите удалить этот товар?')) {
+            if (!confirm('Вы уверены, что хотите удалить этот товар?')) {
                 return;
             }
-             // Пока нет серверной реализации, просто выведем в консоль
-            console.log(`Удаление товара с ID: ${productId}`);
-            alert('Функция удаления товара пока не реализована на сервере.');
-             // После реализации на сервере, раскомментируйте код ниже:
-            /*
-            const response = await fetch(`${apiUrl}/admin/products/${productId}`, {
-                method: 'DELETE',
-                credentials: 'include'
-            });
 
-            if (response.ok) {
-                alert('Товар успешно удалён');
-                loadProducts();  // Обновляем список после удаления
-            } else {
-                const err = await response.json();
-                alert('Не удалось удалить товар: ' + (err.error || 'Неизвестная ошибка'));
+            try {
+                const response = await fetch(`${apiUrl}/admin/products/${productId}`, {
+                    method: 'DELETE',
+                    credentials: 'include'
+                });
+
+                if (response.ok) {
+                    alert('Товар успешно удалён');
+                    loadProducts();  // Обновляем список после удаления
+                } else {
+                    const err = await response.json();
+                    alert('Не удалось удалить товар: ' + (err.error || 'Неизвестная ошибка'));
+                }
+            } catch (error) {
+                alert('Ошибка при удалении товара: ' + error.message);
             }
-            */
         }
 
         // Загрузка заказов
         async function loadOrders() {
+            console.log('loadOrders: Начинаем загрузку заказов...'); // Лог 1
             const response = await fetch(`${apiUrl}/admin/orders`, { credentials: 'include' });
+            console.log('loadOrders: Получен ответ от сервера', response.status); // Лог 2
+
             if (!response.ok) {
+                console.error('loadOrders: Ошибка при получении заказов', response.status, await response.text()); // Лог 3
                 document.getElementById('orders-list').innerHTML = '<p class="text-red-600">Не удалось загрузить заказы</p>';
                 return;
             }
+
             const orders = await response.json();
+            console.log('loadOrders: Получены данные заказов', orders); // Лог 4
+
             const ordersList = document.getElementById('orders-list');
             ordersList.innerHTML = '';
 
             if (orders.length === 0) {
+                console.log('loadOrders: Нет заказов'); // Лог 5
                  ordersList.innerHTML = '<p class="text-gray-600">Нет заказов.</p>';
                 return;
             }
 
+            console.log('loadOrders: Отображаем заказы...'); // Лог 6
             orders.forEach(order => {
                 const div = document.createElement('div');
                 div.className = 'border border-gray-200 rounded-md p-4 bg-gray-50 shadow-sm space-y-2';
@@ -395,7 +427,7 @@
                  header.className = 'flex justify-between font-bold text-gray-800 border-b pb-2 mb-2';
                 header.innerHTML = `
                      <div>Заказ #<span class="font-semibold text-blue-700">${order.order_id}</span></div>
-                     <div class="text-sm font-normal text-gray-600">${new Date(order.created_at).toLocaleString()}</div>
+                     <div class="text-sm font-normal text-gray-600">${formatPermTime(order.created_at)}</div>
                 `;
 
                  const userInfo = document.createElement('div');
@@ -437,6 +469,7 @@
 
                 ordersList.appendChild(div);
             });
+             console.log('loadOrders: Завершили отображение заказов'); // Лог 7
         }
 
         // Модальное окно редактирования товара
@@ -676,6 +709,52 @@
                 msgDiv.className = 'mt-2 text-red-600 font-semibold';
             }
         });
+
+        // Функция загрузки статистики заказов пользователей
+        async function loadUserOrderStats() {
+            const response = await fetch(`${apiUrl}/admin/user-orders-stats`, { credentials: 'include' });
+            if (!response.ok) {
+                document.getElementById('user-order-stats').innerHTML = '<p class="text-red-600">Не удалось загрузить статистику заказов</p>';
+                return;
+            }
+            const stats = await response.json();
+            const statsList = document.getElementById('user-order-stats');
+            statsList.innerHTML = '';
+
+            if (stats.length === 0) {
+                statsList.innerHTML = '<p class="text-gray-600">Нет данных о заказах пользователей.</p>';
+                return;
+            }
+
+            // Создаем таблицу для отображения статистики
+            const table = document.createElement('table');
+            table.className = 'min-w-full divide-y divide-gray-200';
+            table.innerHTML = `
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Пользователь</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Количество заказов</th>
+                    </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-gray-200">
+                    ${stats.map(user => `
+                        <tr class="hover:bg-gray-50">
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${user.id}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${user.username}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${user.email}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${user.total_orders > 0 ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}">
+                                    ${user.total_orders}
+                                </span>
+                            </td>
+                        </tr>
+                    `).join('')}
+                </tbody>
+            `;
+            statsList.appendChild(table);
+        }
     </script>
 </body>
 </html>

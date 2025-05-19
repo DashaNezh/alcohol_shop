@@ -11,6 +11,7 @@ from werkzeug.utils import secure_filename
 import time
 from functools import wraps
 from recommendation_system import RecommendationSystem
+from datetime import datetime, timezone
 
 # Загрузка переменных окружения
 load_dotenv()
@@ -639,6 +640,7 @@ def get_all_orders():
                 order_items = cursor.fetchall()
                 order['items'] = order_items
 
+            app.logger.info(f'get_all_orders: Data before jsonify: {orders}') # Лог для проверки данных
             return jsonify(orders), 200
     finally:
         conn.close()
@@ -655,8 +657,10 @@ def get_user_orders():
         with conn.cursor(cursor_factory=RealDictCursor) as cursor:
             cursor.execute("""
                 SELECT o.id as order_id, o.total_price, o.delivery_address,
-                       o.delivery_method, o.delivery_cost, o.payment_method, o.status, o.created_at
+                       o.delivery_method, o.delivery_cost, o.payment_method, o.status, o.created_at,
+                       u.username, u.email
                 FROM orders o
+                JOIN users u ON o.user_id = u.id
                 WHERE o.user_id = %s
                 ORDER BY o.created_at DESC
             """, (session['user_id'],))
@@ -913,36 +917,38 @@ def cancel_order(order_id):
     conn = get_db_connection()
     try:
         with conn.cursor(cursor_factory=RealDictCursor) as cursor:
-            # Проверяем, существует ли заказ и принадлежит ли он пользователю (или пользователь админ)
-            cursor.execute("SELECT id, user_id, status FROM orders WHERE id = %s", (order_id,))
+            cursor.execute("SELECT id, user_id, status, created_at FROM orders WHERE id = %s", (order_id,))
             order = cursor.fetchone()
 
             if not order:
                 return jsonify({'error': 'Order not found'}), 404
 
-            # Только владелец заказа или админ может отменить
             if order['user_id'] != session['user_id'] and not session.get('is_admin'):
                 return jsonify({'error': 'Forbidden'}), 403
 
-            # Проверяем статус заказа - отменить можно только 'paid' или 'pending' (если есть)
             if order['status'] not in ['paid', 'pending']:
                 return jsonify({'error': f"Cannot cancel order with status: {order['status']}"}), 400
 
-            # Получаем позиции заказа
+            # Проверка времени создания заказа (5 минут)
+            created_at = order['created_at']
+            if isinstance(created_at, str):
+                created_at = datetime.fromisoformat(created_at)
+            now = datetime.now()
+            if (now - created_at).total_seconds() > 300:
+                return jsonify({'error': 'Отменить заказ можно только в течение 5 минут после оформления.'}), 400
+
             cursor.execute("SELECT product_id, quantity FROM order_items WHERE order_id = %s", (order_id,))
             order_items = cursor.fetchall()
 
-            # Возвращаем товары на склад
             for item in order_items:
                 cursor.execute(
                     "UPDATE products SET stock = stock + %s WHERE id = %s",
                     (item['quantity'], item['product_id'])
                 )
 
-            # Обновляем статус заказа
             cursor.execute(
                 "UPDATE orders SET status = %s WHERE id = %s",
-                ('cancelled', order_id)
+                ('canceled', order_id)
             )
 
             log_user_activity(session['user_id'], 'cancel_order', f'Cancelled order_id: {order_id}')
@@ -954,6 +960,39 @@ def cancel_order(order_id):
         conn.rollback()
         app.logger.error(f"Failed to cancel order {order_id}: {e}")
         return jsonify({'error': 'Failed to cancel order'}), 500
+    finally:
+        conn.close()
+
+
+@app.route('/api/admin/user-orders-stats', methods=['GET'])
+def get_user_orders_stats():
+    if not session.get('is_admin'):
+        return jsonify({'error': 'Forbidden'}), 403
+
+    conn = get_db_connection()
+    try:
+        with conn.cursor(cursor_factory=RealDictCursor) as cursor:
+            cursor.execute("SELECT * FROM user_orders_count ORDER BY total_orders DESC")
+            stats = cursor.fetchall()
+            return jsonify(stats)
+    finally:
+        conn.close()
+
+
+@app.route('/api/admin/products/<int:product_id>', methods=['DELETE'])
+@admin_required
+def delete_product(product_id):
+    conn = get_db_connection()
+    try:
+        with conn.cursor() as cursor:
+            # Вызываем хранимую процедуру
+            cursor.execute("CALL delete_product(%s)", (product_id,))
+            conn.commit()
+            return jsonify({'message': 'Product deleted successfully'}), 200
+    except Exception as e:
+        conn.rollback()
+        app.logger.error(f"Failed to delete product: {e}")
+        return jsonify({'error': str(e)}), 500
     finally:
         conn.close()
 

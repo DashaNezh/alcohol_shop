@@ -134,6 +134,7 @@
             }
 
             const orders = await response.json();
+            console.log('orders:', orders);
 
             if (orders.length === 0) {
                 ordersListDiv.innerHTML = `
@@ -145,6 +146,11 @@
             }
 
             orders.forEach(order => {
+                const createdAt = new Date(order.created_at).getTime();
+                const fiveMinutesLater = createdAt + 5 * 60 * 1000;
+                const nowWithMargin = Date.now() + 10 * 1000; // Добавляем 10 секунд для запаса
+                const currentTimeFromCreated = new Date(order.created_at.replace('GMT', '')).getTime(); // Парсим строку без GMT
+                console.log('order_id:', order.order_id, 'status:', order.status, 'created_at:', order.created_at, 'createdAt (ms):', createdAt, 'now (ms):', Date.now(), 'nowWithMargin (ms):', nowWithMargin, 'fiveMinutesLater (ms):', fiveMinutesLater, 'currentTimeFromCreated (ms):', currentTimeFromCreated, 'show_button:', currentTimeFromCreated < fiveMinutesLater);
                 const orderDiv = document.createElement('div');
                 orderDiv.className = 'border border-gray-200 rounded-lg p-6 bg-white shadow-sm hover:shadow-md transition duration-200 ease-in-out';
 
@@ -155,7 +161,7 @@
                         <i class="fas fa-receipt text-blue-600 text-lg"></i>
                         <span class="font-bold text-gray-900 text-lg">Заказ #${order.order_id}</span>
                     </div>
-                    <span class="text-sm text-gray-600"><i class="far fa-clock mr-1"></i>${new Date(order.created_at).toLocaleString()}</span>
+                    <span class="text-sm text-gray-600"><i class="far fa-clock mr-1"></i>${formatPermTime(order.created_at)}</span>
                 `;
 
                  const userInfo = document.createElement('div');
@@ -214,6 +220,23 @@
                         itemsList.appendChild(li);
                     });
                     orderDiv.appendChild(itemsList);
+                }
+
+                // Кнопка отмены только если статус 'paid' или 'pending' и прошло меньше 5 минут
+                if ((order.status === 'paid' || order.status === 'pending')) {
+                    if (currentTimeFromCreated < fiveMinutesLater) {
+                        const cancelBtn = document.createElement('button');
+                        cancelBtn.className = 'bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg font-semibold mt-4';
+                        cancelBtn.textContent = 'Отменить заказ';
+                        cancelBtn.onclick = async () => {
+                            if (!confirm('Вы уверены, что хотите отменить заказ?')) return;
+                            const resp = await fetch(`${apiUrl}/orders/${order.order_id}/cancel`, {method: 'POST', credentials: 'include'});
+                            const res = await resp.json();
+                            alert(res.message || res.error);
+                            loadUserOrders();
+                        };
+                        orderDiv.appendChild(cancelBtn);
+                    }
                 }
 
                 ordersListDiv.appendChild(orderDiv);
@@ -362,6 +385,22 @@
 
         document.getElementById('clear-cart-btn').addEventListener('click', clearCart);
 
+        // Автоматически обновлять список заказов каждые 10 секунд
+        setInterval(loadUserOrders, 10000);
+
+        function formatPermTime(dateString) {
+            const date = new Date(dateString);
+            // Получаем UTC-время в миллисекундах
+            let utc = date.getTime() + (date.getTimezoneOffset() * 60000);
+            // Прибавляем 5 часов (UTC+5)
+            const permTime = new Date(utc + 5 * 60 * 60 * 1000);
+            const day = String(permTime.getUTCDate()).padStart(2, '0');
+            const month = String(permTime.getUTCMonth() + 1).padStart(2, '0');
+            const year = permTime.getUTCFullYear();
+            const hours = String(permTime.getUTCHours()).padStart(2, '0');
+            const minutes = String(permTime.getUTCMinutes()).padStart(2, '0');
+            return `${day}.${month}.${year} ${hours}:${minutes}`;
+        }
     </script>
 </body>
-</html> 
+</html>
